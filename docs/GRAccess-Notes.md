@@ -21,6 +21,16 @@ The official reference and samples are in `C:\Program Files (x86)\ArchestrA\Tool
 - A query for an object that does not exist succeeds with `count == 0`. An attribute that does not exist returns `null`.
 - `attribute.value.GetString()` works for every data type. Values that are not set read as `No Data`.
 
+## Templates, toolsets and attributes
+
+- Cast a template's `IgObject` to `ITemplate` to read `Toolset`. It is the full toolset path with `$` between levels, e.g. `Radix$Equipment$Pump`. Toolset names on their own are not unique (EMGALAXY has four toolsets called System), so always work with the full path.
+- `IGalaxy.QueryToolsets()` returns every toolset in the galaxy as a full path. `IToolset.GetChildToolsets(1)` returns a toolset's direct children, also as full paths.
+- `IgObject.Attributes` lists every attribute: internal ones whose names start with `_`, attributes that belong to UDAs and extensions (e.g. `Start.Description`), script attributes, and so on. A few internal names (`_ExternalName`, `_InternalName`) appear twice. `ConfigurableAttributes` returned the same list for `$Pump`.
+- UDAs are listed as XML in the `UDAs` and `_InheritedUDAs` attributes: `<UDAInfo><Attribute Name="Start" DataType="MxBoolean" IsArray="false" InheritedFromTagName="" .../></UDAInfo>`.
+- Extensions are listed as XML in the `Extensions` and `_InheritedExtensions` attributes: `<ExtensionInfo><ObjectExtension>...</ObjectExtension><AttributeExtension><Attribute Name="Cmd" ExtensionType="outputextension" .../></AttributeExtension></ExtensionInfo>`. The I/O extension types are `inputextension`, `outputextension` and `inputoutputextension`.
+- `IAttribute.Description` reads `No Data` when there is no description. `IAttribute.EngUnits` fails with OLE_E_NOSTORAGE on templates.
+- `IAttribute.UpperBoundDim1` is -1 for attributes that are not arrays.
+
 ## Changing objects (from the AVEVA sample, not yet verified here)
 
 CheckOut, then change the object (for example `attribute.SetValue(mxValue)` or `AddUDA`), then `Save()` and `CheckIn(comment)`. Call `UndoCheckOut()` if something fails. Deployed instances that were changed still need to be redeployed.

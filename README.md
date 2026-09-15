@@ -18,6 +18,7 @@ graccess\
 |   |-- Common\            GRAccessTools.Common.dll: code shared by every tool
 |   |   |-- Galaxy\        Connecting, logging in, finding objects, checking GRAccess results
 |   |   |-- Cli\           Argument parsing, the standard Main wrapper, exit codes
+|   |   |-- Output\        Run folders under output\ and CSV files
 |   |   `-- Settings\      Reading config\defaults.ini and credentials saved in Windows Credential Manager
 |   `-- Tools\             One folder per tool, grouped by what the tool is allowed to do
 |       |-- Extract\       Read-only reports and exports
@@ -93,5 +94,6 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 
 | Tool | Category | What it does |
 |---|---|---|
+| ExportTemplateAttributes | Extract | Writes every attribute of a template to CSV: `.\bin\ExportTemplateAttributes.exe -t Pump` |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
 | SaveGalaxyCredential | Setup | Tests a galaxy login and saves it in Windows Credential Manager |
