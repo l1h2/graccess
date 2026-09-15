@@ -94,6 +94,6 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 
 | Tool | Category | What it does |
 |---|---|---|
-| ExportTemplateAttributes | Extract | Writes every attribute of a template to CSV: `.\bin\ExportTemplateAttributes.exe -t Pump` |
+| ExportTemplateAttributes | Extract | Writes every attribute of a template, or of all templates in a toolset, to CSV: `-t Pump`, `-d Radix/Equipment/Pump`, `-d Radix/Equipment -r` |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
 | SaveGalaxyCredential | Setup | Tests a galaxy login and saves it in Windows Credential Manager |

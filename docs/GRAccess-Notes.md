@@ -25,6 +25,9 @@ The official reference and samples are in `C:\Program Files (x86)\ArchestrA\Tool
 
 - Cast a template's `IgObject` to `ITemplate` to read `Toolset`. It is the full toolset path with `$` between levels, e.g. `Radix$Equipment$Pump`. Toolset names on their own are not unique (EMGALAXY has four toolsets called System), so always work with the full path.
 - `IGalaxy.QueryToolsets()` returns every toolset in the galaxy as a full path. `IToolset.GetChildToolsets(1)` returns a toolset's direct children, also as full paths.
+- There is no query condition for "templates in a toolset". Query all templates with `QueryObjects(gObjectIsTemplate, EConditionType.namedLike, "%", EMatch.MatchCondition)` and check each template's `Toolset`. `namedLike` uses SQL wildcards (`%`); `*` matches nothing.
+- The query itself is fast (about 25 ms for 287 templates on EMGALAXY), but reading `Toolset` takes about 30 ms per template, so checking every template takes about 9 seconds.
+- Contained templates (e.g. `$PumpVFDControl.SetPointControl`) are returned as templates with their own `Toolset`, like any other template.
 - `IgObject.Attributes` lists every attribute: internal ones whose names start with `_`, attributes that belong to UDAs and extensions (e.g. `Start.Description`), script attributes, and so on. A few internal names (`_ExternalName`, `_InternalName`) appear twice. `ConfigurableAttributes` returned the same list for `$Pump`.
 - UDAs are listed as XML in the `UDAs` and `_InheritedUDAs` attributes: `<UDAInfo><Attribute Name="Start" DataType="MxBoolean" IsArray="false" InheritedFromTagName="" .../></UDAInfo>`.
 - Extensions are listed as XML in the `Extensions` and `_InheritedExtensions` attributes: `<ExtensionInfo><ObjectExtension>...</ObjectExtension><AttributeExtension><Attribute Name="Cmd" ExtensionType="outputextension" .../></AttributeExtension></ExtensionInfo>`. The I/O extension types are `inputextension`, `outputextension` and `inputoutputextension`.
