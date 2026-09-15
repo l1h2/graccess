@@ -61,11 +61,6 @@ namespace GRAccessTools.BulkChange
             get { return Action == Add || Action == Update; }
         }
 
-        public static bool IsIoExtension(string extensionType)
-        {
-            return IoLetters(extensionType) != null;
-        }
-
         // inputextension -> I, outputextension -> O, inputoutputextension -> IO; null for other extension types
         public static string IoLetters(string extensionType)
         {

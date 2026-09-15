@@ -52,6 +52,15 @@ The official reference and samples are in `C:\Program Files (x86)\ArchestrA\Tool
 - `CheckIn` of a template fails with "Object or its descendent(s) is in use" while any derived template or instance is checked out. Nothing is checked in or propagated; undo the template's check-out, deal with the checked-out objects, and try again.
 - In the galaxy database a UDA's `dynamic_attribute` rows exist only in the template that defines it; derived objects get the extension primitives (`primitive_instance`) but inherit the definition. Check propagation through GRAccess, not with SQL on `dynamic_attribute`.
 
+## Instances, areas and I/O references
+
+- A contained instance has its own tagname (e.g. `LSC3_SPControl_PumpVFD_CHWR`); `HierarchicalName` gives the dotted name (`LSC3_PumpVFDControl_CHWR.SetPointControl`). `QueryObjectsByName` and `EConditionType.NameEquals` only match tagnames. `EConditionType.hierarchicalNameLike` finds the dotted name, but it uses SQL LIKE, where `_` matches any character, so compare the results exactly.
+- Contained templates are already named with dots (`$PumpVFDControl.SetPointControl`), and an instance's `DerivedFrom` returns that name.
+- `QueryObjects(gObjectIsInstance, EConditionType.belongsToArea, area, EMatch.MatchCondition)` returns the objects directly in the area, contained objects included, but not the area itself. Sub-areas are the area objects (`category == idxCategoryArea`) among them, so walk them to cover a whole area tree.
+- I/O references that come from templates are usually `---Auto---`, and GRAccess does not resolve them (not even the internal `IGalaxyFx.GetObjectReferences`). The system builds the path from the object's I/O device assignment: `<device>.<scan group>.<item>`, where the item comes from the naming rule (`<HierarchicalName>.<AttributeName>` by default). The assignments are only in the galaxy database: `object_device_linkage` (object, device and scan group primitive), `autobind_device` and `autobind_device_topic` (overridden naming rules) and `autobind_naming_rule_spec`. `ExportInstanceIO` reads them there.
+- A device's scan group has an `ItemList` attribute, but it is not a complete list of what is assigned to it (on EMGALAXY `GPM_actual` and `GPM_SP` of `LSC3_PumpVFDControl_CHWR` are assigned but not listed).
+- On an input/output extension, `X.DiffOutputDest` is true when the output writes to its own reference in `X.OutputDest`; otherwise `X.OutputDest` is `---` and the attribute reads and writes the `X.InputSource` reference.
+
 ## C# 5
 
 The only compiler on this machine is the .NET Framework 4.8 `csc.exe`, which supports C# 5. Code copied from newer examples often needs rewriting:

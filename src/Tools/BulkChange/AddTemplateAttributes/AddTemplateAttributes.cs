@@ -459,42 +459,16 @@ namespace GRAccessTools.BulkChange
             Dictionary<string, string> owners = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (string xmlAttribute in new[] { "UDAs", "_InheritedUDAs" })
             {
-                foreach (XmlElement element in SelectElements(template, xmlAttribute, "/UDAInfo/Attribute"))
+                foreach (XmlElement element in ObjectXml.SelectElements(template, xmlAttribute, "/UDAInfo/Attribute"))
                     owners[element.GetAttribute("Name")] = element.GetAttribute("InheritedFromTagName");
             }
             return owners;
         }
 
-        // I/O extension type of each attribute that has one in this template
+        // I/O extension type of each attribute that has one in this template (inherited ones are not changed here)
         static Dictionary<string, string> IoExtensionsOf(IgObject template)
         {
-            Dictionary<string, string> extensions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (XmlElement element in SelectElements(template, "Extensions", "/ExtensionInfo/AttributeExtension/Attribute"))
-            {
-                string type = element.GetAttribute("ExtensionType");
-                if (AttributeRow.IsIoExtension(type))
-                    extensions[element.GetAttribute("Name")] = type;
-            }
-            return extensions;
-        }
-
-        // Elements of the XML that templates keep in attributes such as UDAs and Extensions
-        static List<XmlElement> SelectElements(IgObject obj, string xmlAttributeName, string xpath)
-        {
-            List<XmlElement> elements = new List<XmlElement>();
-            IAttribute attribute = obj.Attributes[xmlAttributeName];
-            if (attribute == null)
-                return elements;
-
-            string xml = attribute.value.GetString();
-            if (string.IsNullOrEmpty(xml) || !xml.TrimStart().StartsWith("<", StringComparison.Ordinal))
-                return elements;
-
-            XmlDocument document = new XmlDocument();
-            document.LoadXml(xml);
-            foreach (XmlElement element in document.SelectNodes(xpath))
-                elements.Add(element);
-            return elements;
+            return new Dictionary<string, string>(ObjectXml.IoExtensions(template, false), StringComparer.OrdinalIgnoreCase);
         }
 
         static void WriteRows(string path, List<AttributeRow> rows)

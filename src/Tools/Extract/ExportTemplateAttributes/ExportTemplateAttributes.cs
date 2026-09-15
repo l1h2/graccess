@@ -28,10 +28,6 @@ namespace GRAccessTools.Extract
 
         static readonly string[] Columns = { "path", "template", "name", "description", "dataType", "ioEnabled", "uda" };
 
-        // Attribute extensions that connect an attribute to I/O
-        static readonly HashSet<string> IoExtensionTypes = new HashSet<string>(
-            new[] { "inputextension", "outputextension", "inputoutputextension" }, StringComparer.OrdinalIgnoreCase);
-
         [STAThread]
         static int Main(string[] args)
         {
@@ -172,8 +168,13 @@ namespace GRAccessTools.Extract
         static int WriteAttributes(CsvWriter csv, IgObject template)
         {
             string path = DisplayPath(((ITemplate)template).Toolset ?? "");
-            HashSet<string> udas = ReadNames(template, new[] { "UDAs", "_InheritedUDAs" }, "/UDAInfo/Attribute", null);
-            HashSet<string> ioEnabled = ReadNames(template, new[] { "Extensions", "_InheritedExtensions" }, "/ExtensionInfo/AttributeExtension/Attribute", IoExtensionTypes);
+            HashSet<string> udas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string xmlAttribute in new[] { "UDAs", "_InheritedUDAs" })
+            {
+                foreach (XmlElement element in ObjectXml.SelectElements(template, xmlAttribute, "/UDAInfo/Attribute"))
+                    udas.Add(element.GetAttribute("Name"));
+            }
+            SortedDictionary<string, string> ioEnabled = ObjectXml.IoExtensions(template, true);
 
             SortedDictionary<string, IAttribute> attributes = new SortedDictionary<string, IAttribute>(StringComparer.OrdinalIgnoreCase);
             foreach (IAttribute attribute in template.Attributes)
@@ -185,7 +186,7 @@ namespace GRAccessTools.Extract
             foreach (IAttribute attribute in attributes.Values)
             {
                 csv.WriteRow(path, template.Tagname, attribute.Name, Description(attribute), DataTypeName(attribute),
-                    ioEnabled.Contains(attribute.Name), udas.Contains(attribute.Name));
+                    ioEnabled.ContainsKey(attribute.Name), udas.Contains(attribute.Name));
             }
             return attributes.Count;
         }
@@ -203,32 +204,6 @@ namespace GRAccessTools.Extract
             if (name.StartsWith("Mx", StringComparison.Ordinal))
                 name = name.Substring(2);
             return attribute.UpperBoundDim1 >= 0 ? name + "[]" : name;
-        }
-
-        // Attribute names listed in the XML that templates keep in attributes such as UDAs and Extensions.
-        // When extensionTypes is given, only entries with one of those ExtensionType values are included.
-        static HashSet<string> ReadNames(IgObject template, string[] xmlAttributeNames, string xpath, HashSet<string> extensionTypes)
-        {
-            HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string xmlAttributeName in xmlAttributeNames)
-            {
-                IAttribute xmlAttribute = template.Attributes[xmlAttributeName];
-                if (xmlAttribute == null)
-                    continue;
-
-                string xml = xmlAttribute.value.GetString();
-                if (string.IsNullOrEmpty(xml) || !xml.TrimStart().StartsWith("<", StringComparison.Ordinal))
-                    continue;
-
-                XmlDocument document = new XmlDocument();
-                document.LoadXml(xml);
-                foreach (XmlElement element in document.SelectNodes(xpath))
-                {
-                    if (extensionTypes == null || extensionTypes.Contains(element.GetAttribute("ExtensionType")))
-                        names.Add(element.GetAttribute("Name"));
-                }
-            }
-            return names;
         }
     }
 }
