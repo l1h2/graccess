@@ -1,0 +1,9 @@
+# Build artifacts: recreate with .\build.ps1
+bin/
+
+# Tool run results (may contain galaxy data); keep the folder's README
+output/*
+!output/README.md
+
+# Machine-specific configuration
+config/**/*.local.*
