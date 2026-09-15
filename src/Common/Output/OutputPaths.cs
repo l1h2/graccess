@@ -13,9 +13,15 @@ namespace GRAccessTools.Common
         /// </summary>
         public static string CreateRunFolder(string galaxyName)
         {
+            return CreateRunFolder(galaxyName, "");
+        }
+
+        /// <summary>Same, with a suffix added to the folder name, such as _DRYRUN or _APPLY.</summary>
+        public static string CreateRunFolder(string galaxyName, string suffix)
+        {
             string toolName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
             string toolFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "output", toolName));
-            string runName = DateTime.Now.ToString("yyyyMMdd-HHmmss") + "_" + galaxyName;
+            string runName = DateTime.Now.ToString("yyyyMMdd-HHmmss") + "_" + galaxyName + suffix;
 
             // Never reuse a folder, even when two runs start in the same second
             string folder = Path.Combine(toolFolder, runName);

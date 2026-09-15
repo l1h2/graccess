@@ -1,0 +1,2 @@
+template,name,Description,IO,dataType,label
+$Pump,TestAttribute,This is a test Attribute,O,Boolean,Fail/Pass

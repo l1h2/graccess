@@ -34,9 +34,23 @@ The official reference and samples are in `C:\Program Files (x86)\ArchestrA\Tool
 - `IAttribute.Description` reads `No Data` when there is no description. `IAttribute.EngUnits` fails with OLE_E_NOSTORAGE on templates.
 - `IAttribute.UpperBoundDim1` is -1 for attributes that are not arrays.
 
-## Changing objects (from the AVEVA sample, not yet verified here)
+## Changing templates (verified on Galaxy_test)
 
-CheckOut, then change the object (for example `attribute.SetValue(mxValue)` or `AddUDA`), then `Save()` and `CheckIn(comment)`. Call `UndoCheckOut()` if something fails. Deployed instances that were changed still need to be redeployed.
+- The sequence is `CheckOut()`, the changes, `Save()`, `CheckIn(comment)`. `ObjectEdits` in `src\Common` wraps it.
+- After `Save()`, `UndoCheckOut()` fails with "Object is being edited by <user>" (reported as checked out to someone else). Calling `Unload()`, which reports the same error, and then `UndoCheckOut()` again works. `ObjectEdits.UndoCheckOut` does this.
+- `AddUDA` accepts only `MxCategoryCalculated` and `MxCategoryWriteable_USC_Lockable` (User writeable), plus `MxCategoryWriteable_C_Lockable` for InternationalizedString. It rejects `MxCategoryWriteable_S` (Object writeable), even though the IDE can create it. A name that already exists is rejected ("conflicts with another attribute").
+- `UpdateUDA(name, ...)` changes the data type and category of a UDA defined in the template. On a Boolean it also removes the Boolean labels.
+- `AddExtensionPrimitive(type, attributeName, false)` adds an I/O extension (`inputextension`, `outputextension`, `inputoutputextension`); input adds `.InputSource`, output adds `.OutputDest`. `DeleteExtensionPrimitive(type, attributeName)` removes one.
+- Boolean labels: write `<CmdData><BooleanLabel><Attribute Name="X"/></BooleanLabel></CmdData>` to `_CmdAdd`. This creates `X.OnMsg`, `X.OffMsg` and `X.Msg` exactly like the IDE. `_CmdAdd` only handles Boolean labels, and writing `CmdData` directly reports an error.
+- Descriptions and engineering units: set `attribute.Description = text` or `attribute.EngUnits = text` on the UDA. The help only mentions reading these properties, but the interop has setters. GRAccess then creates `X.Description` or `X.EngUnits` the way the IDE does: a "User extended" attribute (`dynamic_attribute_type` 4 in the galaxy database) that is not listed as a UDA and can be locked with `SetLocked`. Engineering units only work on numeric attributes; on a Boolean nothing happens.
+- Do not create them with `AddUDA("X.Description", ...)`: that makes a separate, ordinary UDA (type 1) that the IDE lists on its own, even though the IDE's Description field then shows its value.
+- Set InternationalizedString values with `PutInternationalString(1033, text)`; `PutString` is rejected ("Value must be a valid string").
+- `SetLocked(MxLockedInMe)` locks a value in the template; derived objects show it as `MxLockedInParent`.
+- Locking the I/O block in the IDE locks the extension's lockable settings: `X.InputSource`, `X.OutputDest`, `X.OutputEveryScan`, `X.InvertValue` (Booleans), `X.Deadband` (numbers) and `X.DiffOutputDest` (input/output). Status attributes such as `X.ReadStatus`, `X.WriteStatus` and `X.WriteValue` are not lockable.
+- `QueryObjects(kind, EConditionType.derivedOrInstantiatedFrom, tagname, EMatch.MatchCondition)` returns only direct children (templates or instances), so walk the tree to find every descendant.
+- Changes reach derived templates and instances when the template is checked in, and reading them through GRAccess right afterwards shows the change. Deployed instances then need to be redeployed.
+- `CheckIn` of a template fails with "Object or its descendent(s) is in use" while any derived template or instance is checked out. Nothing is checked in or propagated; undo the template's check-out, deal with the checked-out objects, and try again.
+- In the galaxy database a UDA's `dynamic_attribute` rows exist only in the template that defines it; derived objects get the extension primitives (`primitive_instance`) but inherit the definition. Check propagation through GRAccess, not with SQL on `dynamic_attribute`.
 
 ## C# 5
 
