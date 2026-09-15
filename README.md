@@ -17,12 +17,14 @@ graccess\
 |-- src\                   All C# source
 |   |-- Common\            GRAccessTools.Common.dll: code shared by every tool
 |   |   |-- Galaxy\        Connecting, logging in, finding objects, checking GRAccess results
-|   |   `-- Cli\           Argument parsing, the standard Main wrapper, exit codes
+|   |   |-- Cli\           Argument parsing, the standard Main wrapper, exit codes
+|   |   `-- Settings\      Reading config\defaults.ini and credentials saved in Windows Credential Manager
 |   `-- Tools\             One folder per tool, grouped by what the tool is allowed to do
 |       |-- Extract\       Read-only reports and exports
 |       |-- Evaluate\      Read-only rule checks that report findings
-|       `-- BulkChange\    Tools that modify a galaxy (read its README first)
-|-- config\                Non-secret inputs for tools: object lists, mappings, rules
+|       |-- BulkChange\    Tools that modify a galaxy (read its README first)
+|       `-- Setup\         Tools that prepare this machine, such as saving galaxy credentials
+|-- config\                defaults.ini (default galaxy) and non-secret inputs for tools
 |-- docs\                  GRAccess notes and gotchas
 |-- bin\                   Build artifacts, created by build.ps1 (safe to delete)
 `-- output\                Files written by tools when they run (never deleted by the build)
@@ -35,13 +37,31 @@ graccess\
 .\build.ps1 -Clean   # deletes bin\
 ```
 
+## Galaxy settings
+
+Tools connect to the galaxy set in `config\defaults.ini` (currently EMGALAXY) unless you pass `-Galaxy`.
+
+For a galaxy with security enabled, save the login once. The tool tests the login and saves it only if it works:
+
+```powershell
+.\bin\SaveGalaxyCredential.exe -User AVEVAUser1                  # default galaxy; prompts for the password
+.\bin\SaveGalaxyCredential.exe -Galaxy <name> -User <name>        # another galaxy
+```
+
+The password is kept in Windows Credential Manager (Control Panel > Credential Manager > Windows Credentials, named `GRAccessTools:<Galaxy>@<Node>`), encrypted for your Windows user on this machine. It never goes into project files. Run the command again after a password change, and remove a saved login with `cmdkey /delete:GRAccessTools:EMGALAXY@RDX-SRV-10-DEV`.
+
+How a tool logs in:
+
+- **Galaxy and node:** `-Galaxy` and `-Node`, otherwise `config\defaults.ini`, otherwise this computer for the node.
+- **User:** `-User`, otherwise the user saved for that galaxy, otherwise none (for galaxies without security).
+- **Password:** the saved one when the user matches, otherwise prompted.
+
 ## Run
 
 ```powershell
-.\bin\ReadGalaxyProperty.exe                                    # lists the galaxies on this node
-.\bin\ReadGalaxyProperty.exe -Galaxy TrainingGalaxy
-.\bin\ReadGalaxyProperty.exe -Galaxy TrainingGalaxy -Object '$UserDefined' -Attribute CodeBase
-.\bin\ReadGalaxyProperty.exe -Galaxy EMGALAXY -User <name>      # prompts for the password
+.\bin\ReadGalaxyProperty.exe                                     # default galaxy with the saved login
+.\bin\ReadGalaxyProperty.exe -Object '$UserDefined' -Attribute CodeBase
+.\bin\ReadGalaxyProperty.exe -Galaxy TrainingGalaxy              # a galaxy without security
 .\bin\ReadGalaxyProperty.exe -Help
 ```
 
@@ -51,7 +71,7 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 
 ## Add a tool
 
-1. Pick the category. Extract and Evaluate tools only read; BulkChange tools write, so read `src\Tools\BulkChange\README.md` first.
+1. Pick the category. Extract and Evaluate tools only read; BulkChange tools write, so read `src\Tools\BulkChange\README.md` first; Setup tools prepare this machine.
 2. Copy the reference tool and rename its file:
    ```powershell
    Copy-Item -Recurse src\Tools\Extract\ReadGalaxyProperty src\Tools\Extract\ExportTemplates
@@ -67,10 +87,11 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 - Folder name = class name = exe name: PascalCase verb + noun, unique across all categories.
 - Open galaxies with `using (GalaxySession session = ToolRunner.OpenGalaxy(args))` and call `GRAccessException.ThrowIfFailed` after every GRAccess call.
 - Tools never reference other tools. Code moves into `src\Common` only when a second tool needs it.
-- Never put passwords in commands, source, config or output.
+- Never put passwords in commands, source, config or output. Save them with `SaveGalaxyCredential.exe`.
 
 ## Tools
 
 | Tool | Category | What it does |
 |---|---|---|
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
+| SaveGalaxyCredential | Setup | Tests a galaxy login and saves it in Windows Credential Manager |

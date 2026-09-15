@@ -20,9 +20,10 @@ namespace GRAccessTools.Common
             if (result.Successful)
                 return;
 
-            string detail = result.Text;
-            if (!string.IsNullOrEmpty(result.CustomMessage))
-                detail += " - " + result.CustomMessage;
+            string detail = (result.Text ?? "").Trim();
+            string customMessage = (result.CustomMessage ?? "").Trim();  // GRAccess sometimes ends it with a line break
+            if (customMessage.Length > 0)
+                detail += " - " + customMessage;
             throw new GRAccessException(step + " failed: " + detail);
         }
     }

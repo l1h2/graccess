@@ -12,7 +12,7 @@ namespace GRAccessTools.Extract
         const string Usage =
             "Prints a galaxy's name and version, and the value of one attribute of one object.\r\n" +
             "\r\n" +
-            "Usage: ReadGalaxyProperty.exe -Galaxy <name> [-Object <tagname>] [-Attribute <name>] [-User <name>]\r\n" +
+            "Usage: ReadGalaxyProperty.exe [-Galaxy <name>] [-Object <tagname>] [-Attribute <name>] [-User <name>]\r\n" +
             "\r\n" +
             "  -Object <tagname>   Template or instance to read (default: $UserDefined)\r\n" +
             "  -Attribute <name>   Attribute to read (default: SecurityGroup)";
