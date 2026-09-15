@@ -95,7 +95,7 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 | Tool | Category | What it does |
 |---|---|---|
 | AddTemplateAttributes | BulkChange | Adds (or with `-o` updates) UDAs on templates from a CSV file and checks propagation. Dry run unless `-Apply`: `-i config\AddTemplateAttributes-test.csv` |
-| ExportInstanceIO | Extract | Writes the full I/O paths of an instance, or of every instance in an area and its sub-areas, to CSV: `-i LSC3_PumpVFDControl_CHWR.SetPointControl`, `-a LifeSci3` |
+| ExportInstanceIO | Extract | Writes the full I/O paths of an instance, or of every instance in an area and its sub-areas, to CSV: `-i LSC3_PumpVFDControl_CHWR.SetPointControl`, `-a LifeSci3`; add `-u` for only the points missing from their scan group's ItemList |
 | ExportTemplateAttributes | Extract | Writes every attribute of a template, or of all templates in a toolset, to CSV: `-t Pump`, `-d Radix/Equipment/Pump`, `-d Radix/Equipment -r` |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
 | SaveGalaxyCredential | Setup | Tests a galaxy login and saves it in Windows Credential Manager |

@@ -1,5 +1,6 @@
 // ExportInstanceIO: writes the I/O references of one instance, or of every instance in an area and its sub-areas, to a
-// CSV file, with auto-assigned I/O resolved to the full path the system uses.
+// CSV file, with auto-assigned I/O resolved to the full path the system uses. With -u only the unmapped references are
+// written: those whose item is not in the ItemList of their device's scan group.
 
 using System;
 using System.Collections.Generic;
@@ -15,16 +16,18 @@ namespace GRAccessTools.Extract
             "Writes the I/O references of an instance, or of every instance in an area and its sub-areas, to\r\n" +
             "instance-io.csv: instance, template, attribute, and the full I/O path the system uses.\r\n" +
             "\r\n" +
-            "Usage: ExportInstanceIO.exe -i <instance>\r\n" +
-            "       ExportInstanceIO.exe -a <area>\r\n" +
+            "Usage: ExportInstanceIO.exe -i <instance> [-u]\r\n" +
+            "       ExportInstanceIO.exe -a <area> [-u]\r\n" +
             "\r\n" +
             "  -i <instance>   Instance tagname or full name, e.g. -i LSC3_PumpVFDControl_CHWR.SetPointControl\r\n" +
             "  -a <area>       Area tagname; the instances in all of its sub-areas are included\r\n" +
+            "  -u              Only unmapped references, written to instance-io-unmapped.csv: those whose item is not\r\n" +
+            "                  in the ItemList of their device's scan group, or whose object has no I/O device assigned\r\n" +
             "\r\n" +
             "Auto-assigned I/O (---Auto---) is resolved from the galaxy's I/O device assignments, which are read from\r\n" +
             "the galaxy database with your Windows login.";
 
-        static readonly string[] Options = { "i", "a" };
+        static readonly string[] Options = { "i", "a", "u" };
 
         const string AutoReference = "---Auto---";
 
@@ -38,6 +41,7 @@ namespace GRAccessTools.Extract
         {
             string instanceName = args.Get("i", null);
             string areaName = args.Get("a", null);
+            bool unmappedOnly = args.Has("u");
             if ((instanceName == null) == (areaName == null))
                 throw new UsageException("Give either -i <instance> or -a <area>.");
 
@@ -60,7 +64,11 @@ namespace GRAccessTools.Extract
                 foreach (IgObject instance in instances)
                     rows.AddRange(ReadIo(session, instance, assignments, templateNames, ref unassigned));
 
-                string file = Path.Combine(OutputPaths.CreateRunFolder(galaxy.Name), "instance-io.csv");
+                int allRows = rows.Count;
+                if (unmappedOnly)
+                    rows = UnmappedOnly(session, rows);
+
+                string file = Path.Combine(OutputPaths.CreateRunFolder(galaxy.Name), unmappedOnly ? "instance-io-unmapped.csv" : "instance-io.csv");
                 using (CsvWriter csv = new CsvWriter(file))
                 {
                     csv.WriteRow("instance", "template", "attribute", "path");
@@ -68,12 +76,39 @@ namespace GRAccessTools.Extract
                         csv.WriteRow(row);
                 }
 
-                Console.WriteLine("Exported " + rows.Count + " I/O reference(s) of " + instances.Count + " instance(s) to:");
+                if (unmappedOnly)
+                    Console.WriteLine("Exported " + rows.Count + " unmapped of " + allRows + " I/O reference(s) of " + instances.Count + " instance(s) to:");
+                else
+                    Console.WriteLine("Exported " + rows.Count + " I/O reference(s) of " + instances.Count + " instance(s) to:");
                 Console.WriteLine(file);
                 if (unassigned > 0)
                     Console.WriteLine("Note: " + unassigned + " reference(s) are " + AutoReference + " but their object has no I/O device assigned, so their path starts with <IODevice>.");
             }
             return ExitCodes.Success;
+        }
+
+        // Keeps the references whose item is missing from their scan group's ItemList, and those whose object has no I/O
+        // device assigned. References that do not point to a device scan group with an ItemList cannot be checked.
+        static List<string[]> UnmappedOnly(GalaxySession session, List<string[]> rows)
+        {
+            ItemLists itemLists = new ItemLists(session);
+            List<string[]> unmapped = new List<string[]>();
+            int listed = 0, notChecked = 0;
+            foreach (string[] row in rows)
+            {
+                ItemStatus status = itemLists.Check(row[3]);
+                if (status == ItemStatus.Listed)
+                    listed++;
+                else if (status == ItemStatus.NotChecked)
+                    notChecked++;
+                else
+                    unmapped.Add(row);
+            }
+
+            Console.WriteLine("Checked " + rows.Count + " I/O reference(s) against their scan group's ItemList: " + listed + " listed, " + unmapped.Count + " unmapped.");
+            if (notChecked > 0)
+                Console.WriteLine("Note: " + notChecked + " reference(s) do not point to a device scan group with an ItemList (for example Me.<attribute>), so they were not checked.");
+            return unmapped;
         }
 
         static IgObject FindInstance(IGalaxy galaxy, string name)
