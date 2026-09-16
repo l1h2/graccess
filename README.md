@@ -19,13 +19,13 @@ graccess\
 |   |   |-- Galaxy\        Connecting, logging in, finding objects, checking GRAccess results
 |   |   |-- Cli\           Argument parsing, the standard Main wrapper, exit codes
 |   |   |-- Output\        Run folders under output\ and CSV files
-|   |   `-- Settings\      Reading config\defaults.ini and credentials saved in Windows Credential Manager
+|   |   `-- Settings\      Reading config\defaults.ini and config\credentials.local.ini
 |   `-- Tools\             One folder per tool, grouped by what the tool is allowed to do
 |       |-- Extract\       Read-only reports and exports
 |       |-- Evaluate\      Read-only rule checks that report findings
 |       |-- BulkChange\    Tools that modify a galaxy (read its README first)
-|       `-- Setup\         Tools that prepare this machine, such as saving galaxy credentials
-|-- config\                defaults.ini (default galaxy) and non-secret inputs for tools
+|       `-- Setup\         Tools that prepare this machine
+|-- config\                defaults.ini (default galaxy), credentials.local.ini (logins) and inputs for tools
 |-- docs\                  GRAccess notes and gotchas
 |-- bin\                   Build artifacts, created by build.ps1 (safe to delete)
 `-- output\                Files written by tools when they run (never deleted by the build)
@@ -42,25 +42,24 @@ graccess\
 
 Tools connect to the galaxy set in `config\defaults.ini` (currently EMGALAXY) unless you pass `-Galaxy`.
 
-For a galaxy with security enabled, save the login once. The tool tests the login and saves it only if it works:
+For a galaxy with security enabled, put the login in `config\credentials.local.ini`. Copy `config\credentials.example.ini` to start. The file is ignored by git, so it stays on this machine:
 
-```powershell
-.\bin\SaveGalaxyCredential.exe -User AVEVAUser1                  # default galaxy; prompts for the password
-.\bin\SaveGalaxyCredential.exe -Galaxy <name> -User <name>        # another galaxy
+```ini
+[EMGALAXY]
+User=AVEVAUser1
+Password=...
 ```
-
-The password is kept in Windows Credential Manager (Control Panel > Credential Manager > Windows Credentials, named `GRAccessTools:<Galaxy>@<Node>`), encrypted for your Windows user on this machine. It never goes into project files. Run the command again after a password change, and remove a saved login with `cmdkey /delete:GRAccessTools:EMGALAXY@RDX-SRV-10-DEV`.
 
 How a tool logs in:
 
 - **Galaxy and node:** `-Galaxy` and `-Node`, otherwise `config\defaults.ini`, otherwise this computer for the node.
-- **User:** `-User`, otherwise the user saved for that galaxy, otherwise none (for galaxies without security).
-- **Password:** the saved one when the user matches, otherwise prompted.
+- **User:** `-User`, otherwise `User` in the galaxy's section of `config\credentials.local.ini`, otherwise none (for galaxies without security).
+- **Password:** `Password` from that section when the user matches, otherwise prompted.
 
 ## Run
 
 ```powershell
-.\bin\ReadGalaxyProperty.exe                                     # default galaxy with the saved login
+.\bin\ReadGalaxyProperty.exe                                     # default galaxy with the login from credentials.local.ini
 .\bin\ReadGalaxyProperty.exe -Object '$UserDefined' -Attribute CodeBase
 .\bin\ReadGalaxyProperty.exe -Galaxy TrainingGalaxy              # a galaxy without security
 .\bin\ReadGalaxyProperty.exe -Help
@@ -88,7 +87,7 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 - Folder name = class name = exe name: PascalCase verb + noun, unique across all categories.
 - Open galaxies with `using (GalaxySession session = ToolRunner.OpenGalaxy(args))` and call `GRAccessException.ThrowIfFailed` after every GRAccess call.
 - Tools never reference other tools. Code moves into `src\Common` only when a second tool needs it.
-- Never put passwords in commands, source, config or output. Save them with `SaveGalaxyCredential.exe`.
+- Passwords go only in `config\credentials.local.ini`: never in commands, source, committed files or output.
 
 ## Tools
 
@@ -98,4 +97,3 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 | ExportInstanceIO | Extract | Writes the full I/O paths of an instance, or of every instance in an area and its sub-areas, to CSV: `-i LSC3_PumpVFDControl_CHWR.SetPointControl`, `-a LifeSci3`; add `-u` for only the points missing from their scan group's ItemList |
 | ExportTemplateAttributes | Extract | Writes every attribute of a template, or of all templates in a toolset, to CSV: `-t Pump`, `-d Radix/Equipment/Pump`, `-d Radix/Equipment -r` |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
-| SaveGalaxyCredential | Setup | Tests a galaxy login and saves it in Windows Credential Manager |

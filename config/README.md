@@ -1,10 +1,14 @@
 # config
 
-Settings and inputs for the tools. Never store passwords or other credentials here: galaxy passwords are saved in Windows Credential Manager with `.\bin\SaveGalaxyCredential.exe`.
+Settings and inputs for the tools.
 
 ## defaults.ini
 
-The one file tools read automatically. It sets defaults for the standard options `Galaxy` and `Node`, so they do not have to be typed every time. An option given on the command line always wins. Tools find it from their exe (`bin\..\config\defaults.ini`), so it works from any current folder.
+Defaults for the standard options `Galaxy` and `Node`, so they do not have to be typed every time. An option given on the command line always wins. Tools find it from their exe (`bin\..\config\defaults.ini`), so it works from any current folder.
+
+## credentials.local.ini
+
+Galaxy logins: one `[GalaxyName]` section per galaxy with `User=` and `Password=`. Copy `credentials.example.ini` to start. Git ignores this file, so it stays on this machine. Tools read it automatically, the same way as `defaults.ini`. Galaxies without security need no section.
 
 ## Inputs for tools
 

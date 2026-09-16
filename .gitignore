@@ -5,5 +5,5 @@ bin/
 output/*
 !output/README.md
 
-# Machine-specific configuration
+# Machine-specific configuration, including the galaxy logins in config/credentials.local.ini
 config/**/*.local.*

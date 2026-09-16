@@ -46,7 +46,7 @@ namespace GRAccessTools.Common
 
         /// <summary>
         /// Finds the galaxy (name is case-insensitive) and logs in.
-        /// Blank user and password work when galaxy security is off.
+        /// Blank user and password work when galaxy security is off. A rejected login throws GalaxyLoginException.
         /// </summary>
         public static GalaxySession Open(string node, string galaxyName, string user, string password)
         {
@@ -66,7 +66,14 @@ namespace GRAccessTools.Common
                 throw new GRAccessException("Galaxy '" + galaxyName + "' was not found on " + node + ". Galaxies there: " + string.Join(", ", names.ToArray()));
 
             galaxy.Login(user ?? "", password ?? "");
-            GRAccessException.ThrowIfFailed(galaxy.CommandResult, "Login to " + galaxy.Name);
+            try
+            {
+                GRAccessException.ThrowIfFailed(galaxy.CommandResult, "Login to " + galaxy.Name);
+            }
+            catch (GRAccessException ex)
+            {
+                throw new GalaxyLoginException(ex.Message);
+            }
 
             return new GalaxySession(app, galaxy);
         }

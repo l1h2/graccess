@@ -1,2 +1,90 @@
 template,name,Description,IO,dataType,label
-$Pump,TestAttribute,This is a test Attribute,O,Boolean,Fail/Pass
+$MagneticChiller,REMOTE_INPUT_CURRENT_SP,Remote Input Current Limit Setpoint,IO,Float,%
+$MagneticChiller,REM_HEATING_SP,Remote Heating Setpoint,IO,Float,F
+$MagneticChiller,REM_RUN_STOP_CMD,Remote Run/Stop,IO,Float,
+$MagneticChiller,LEAVING_CH_LIQ_TEMP,Leaving Chilled Liquid Temperature,IO,Float,F
+$MagneticChiller,ENTERING_CH_LIQ_TEMP,Entering Chilled Liquid Temperature,IO,Float,F
+$MagneticChiller,LEAVING_COND_WATER_TEMP,Leaving Condenser Liquid Temperature,IO,Float,F
+$MagneticChiller,ENTERING_COND_WATER_TEMP,Entering Condenser Liquid Temperature,IO,Float,F
+$MagneticChiller,EVAPORATOR_PRESSURE,Evaporator Pressure,IO,Float,psiG
+$MagneticChiller,CONDENSER_PRESSURE,Condenser Pressure,IO,Float,psiG
+$MagneticChiller,DISCHARGE_TEMP,Discharge Temperature,IO,Float,F
+$MagneticChiller,EVAP_REFRIGERANT_TEMP,Evaporator Refrigerant Temperature,IO,Float,F
+$MagneticChiller,VSD_PHASE_A_OUTPUT_CURRENT,VSD Phase A Output Current (RMS),IO,Float,A
+$MagneticChiller,VSD_PHASE_B_OUTPUT_CURRENT,VSD Phase B Output Current (RMS),IO,Float,A
+$MagneticChiller,VSD_PHASE_C_OUTPUT_CURRENT,VSD Phase C Output Current (RMS),IO,Float,A
+$MagneticChiller,VSD_RMS_INPUT_CURRENT_L1,VSD L1 Input Current (RMS),IO,Float,A
+$MagneticChiller,VSD_RMS_INPUT_CURRENT_L2,VSD L2 Input Current (RMS),IO,Float,A
+$MagneticChiller,VSD_RMS_INPUT_CURRENT_L3,VSD L3 Input Current (RMS),IO,Float,A
+$MagneticChiller,LEAVING_CH_LIQ_TEMP_ACT_SP,,IO,Float,F
+$MagneticChiller,INPUT_CURRENT_LMT_ACTIVE,Active Input Current Limit,IO,Float,%
+$MagneticChiller,EVAP_SATURATION_TEMP,Evaporator Saturation Temperature,IO,Float,F
+$MagneticChiller,COND_SATURATION_TEMP,Condenser Saturation Temperature,IO,Float,F
+$MagneticChiller,INPUT_CURRENT_PCT_FLA,Input % Full Load Amps,IO,Float,%
+$MagneticChiller,COND_REFRIGERANT_LEVEL,Condenser Refrigerant Level,IO,Float,%
+$MagneticChiller,OPERATING_HOURS,Operating Hours,IO,Float,hours
+$MagneticChiller,NUMBER_OF_STARTS,Number Of Starts,IO,Float,
+$MagneticChiller,MOTOR_CURRENT_PCT_FLA,Motor % Full Load Amps,IO,Float,%
+$MagneticChiller,COMPR_MOTOR_STATUS,Motor Run,IO,Float,
+$MagneticChiller,CH_LIQ_PUMP_STAT,Chilled Liquid Pump,IO,Float,
+$MagneticChiller,VSD_COOLING_SYS_STAT,VSD Cooling System,IO,Float,
+$MagneticChiller,RUN_PERMISSIVE,Run Permissive,IO,Float,
+$MagneticChiller,CH_LIQ_FLOW_SWITCH_STAT,Chilled Liquid Flow Switch,IO,Float,
+$MagneticChiller,CND_FLOW_SWITCH_STAT,Condenser Liquid Flow Switch,IO,Float,
+$MagneticChiller,COND_REF_LEVEL_CNTRL_MODE,Condenser Level Control Valve Mode,IO,Float,
+$MagneticChiller,CND_LIQ_PUMP_STAT,Condenser Liquid Pump,IO,Float,
+$MagneticChiller,UNIT_OPERATION_CODE,Unit Operation Code,IO,Float,
+$MagneticChiller,UNIT_OPERATION_CODE_AV,Unit Operation Code AV,IO,Float,
+$MagneticChiller,UNIT_SAFETY_FAULT_CODE,Unit Safety Fault Code,IO,Float,
+$MagneticChiller,UNIT_SAFETY_FAULT_CODE_AV,Unit Safety Fault Code AV,IO,Float,
+$MagneticChiller,UNIT_CYCLING_FAULT_CODE,Unit Cycling Fault Code,IO,Float,
+$MagneticChiller,UNIT_CYCLING_FAULT_CODE_AV,Unit Cycling Fault Code AV,IO,Float,
+$MagneticChiller,UNIT_WARNING_CODE,Unit Warning Code,IO,Float,
+$MagneticChiller,UNIT_WARNING_CODE_AV,Unit Warning Code AV,IO,Float,
+$MagneticChiller,UNIT_CONTROL_SOURCE,Unit Control Source,IO,Float,
+$MagneticChiller,UNIT_CONTROL_SOURCE_AV,Unit Control Source AV,IO,Float,
+$MagneticChiller,UNIT_MODIFIED_RUN_CODE,Unit Modified Run Code,IO,Float,
+$MagneticChiller,UNIT_MODIFIED_RUN_CODE_AV,Unit Modified Run Code AV,IO,Float,
+$MagneticChiller,UNIT_START_INHIBIT_CODE,Unit Start Inhibit Code,IO,Float,
+$MagneticChiller,UNIT_START_INHIBIT_CODE_AV,Unit Start Inhibit Code AV,IO,Float,
+$MagneticChiller,UNIT_INTERNAL_FAULT_CODE,Unit Internal Fault Code,IO,Float,
+$MagneticChiller,UNIT_INTERNAL_FAULT_CODE_AV,Unit Internal Fault Code AV,IO,Float,
+$MagneticChiller,ACTIVE_ANTI_SURGE_MIN_FREQ,Active Anti-Surge Minimum Frequency,IO,Float,Hz
+$MagneticChiller,VSD_OUTPUT_VOLTAGE,VSD Output Voltage,IO,Float,V
+$MagneticChiller,VSD_INPUT_POWER,VSD Input Power,IO,Float,kW
+$MagneticChiller,VSD_INPUT_KWH,VSD Input Kilowatt Hours,IO,Float,kWh
+$MagneticChiller,VSD_DC_BUS_VOLTAGE,VSD DC Bus Voltage,IO,Float,V
+$MagneticChiller,VSD_INPUT_VOLTAGE_L1,VSD L1 Input Voltage (RMS),IO,Float,V
+$MagneticChiller,SURGE_COUNT,Surge Count,IO,Float,
+$MagneticChiller,VSD_OUTPUT_FREQUENCY,VSD Output Frequency,IO,Float,Hz
+$MagneticChiller,VSD_INPUT_VOLTAGE_L2,VSD L2 Input Voltage (RMS),IO,Float,V
+$MagneticChiller,VSD_INPUT_VOLTAGE_L3,VSD L3 Input Voltage (RMS),IO,Float,V
+$MagneticChiller,COND_LVL_CTRL_VLV_CMD,Condenser Level Control Valve Command,IO,Float,%
+$MagneticChiller,MBC_LEVITATION_MODE,MBC Levitation Mode,IO,Float,
+$MagneticChiller,MBC_ROTATION_MODE,MBC Rotation Mode,IO,Float,
+$MagneticChiller,MOTOR_HOUSING_TEMP,Motor Housing Temp,IO,Float,F
+$MagneticChiller,VSD_INTERNAL_AMBIENT_TEMP_2,VSD Internal Ambient Temperature 2,IO,Float,F
+$MagneticChiller,MTR_WINDING_AVG_TEMP,Average Motor Winding Temperature,IO,Float,F
+$MagneticChiller,VSD_INTERNAL_AMBIENT_TEMP_1,VSD Internal Ambient Temperature 1,IO,Float,F
+$MagneticChiller,VGD_POSITION,VGD Position,IO,Float,%
+$MagneticChiller,COND_REFRIGERANT_LEVEL_SP,Condenser Active Level Setpoint,IO,Float,%
+$MagneticChiller,DROP_LEG_REFRIG_TEMP,Drop Leg Refrigerant Temperature,IO,Float,F
+$MagneticChiller,INPUT_KWH_LO,Input Kilowatt Hours Low,IO,Float,
+$MagneticChiller,INPUT_KWH_OFFSET,Input Kilowatt Hours Offset,IO,Float,
+$MagneticChiller,OPERATING_HOURS_LO,Operating Hours Low,IO,Float,
+$MagneticChiller,OPERATING_HOURS_OFFSET,Operating Hours Offset,IO,Float,
+$MagneticChiller,MBC_MOTOR_SPEED,MBC Motor Speed,IO,Float,Hz
+$MagneticChiller,UPS_BATTERY_VOLTAGE,UPS Battery Voltage,IO,Float,V
+$MagneticChiller,VSD_PH_A_REC_BASEPLATE_TEMP,,IO,Float,F
+$MagneticChiller,VSD_PH_B_REC_BASEPLATE_TEMP,,IO,Float,F
+$MagneticChiller,VSD_PH_C_REC_BASEPLATE_TEMP,,IO,Float,F
+$MagneticChiller,VSD_PH_A_INV_BASEPLATE_TEMP,,IO,Float,F
+$MagneticChiller,VSD_PH_B_INV_BASEPLATE_TEMP,,IO,Float,F
+$MagneticChiller,VSD_PH_C_INV_BASEPLATE_TEMP,,IO,Float,F
+$MagneticChiller,EVAP_SMALL_TEMP_DIFF,Evaporator Small Temp Difference,IO,Float,F
+$MagneticChiller,COND_SMALL_TEMP_DIFF,Condenser Small Temp Difference,IO,Float,F
+$MagneticChiller,DISCHARGE_SUPERHEAT,Discharge Superheat,IO,Float,F
+$MagneticChiller,SUBCOOLLER_EFFECTIVENESS,Subcooler Effectiveness,IO,Float,
+$MagneticChiller,SUBCOOLING_TEMP,Subcooling Temperature,IO,Float,F
+$MagneticChiller,DELTA_P_DIV_P,Delta P / P,IO,Float,
+$MagneticChiller,HEAD_PRESSURE,Head Pressure,IO,Float,psiD

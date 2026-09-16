@@ -18,8 +18,8 @@ namespace GRAccessTools.Common
             "Standard options:\r\n" +
             "  -Galaxy <name>   Galaxy to connect to (default: Galaxy in config\\defaults.ini)\r\n" +
             "  -Node <name>     Galaxy Repository node (default: Node in config\\defaults.ini, else this computer)\r\n" +
-            "  -User <name>     Galaxy user (default: the user saved with SaveGalaxyCredential.exe). The saved\r\n" +
-            "                   password is used when there is one; otherwise it is prompted.\r\n" +
+            "  -User <name>     Galaxy user (default: User for the galaxy in config\\credentials.local.ini). The\r\n" +
+            "                   password comes from the same file when the user matches; otherwise it is prompted.\r\n" +
             "                   Omit when galaxy security is off.\r\n" +
             "  -Help            Show this help";
 
@@ -63,8 +63,8 @@ namespace GRAccessTools.Common
 
         /// <summary>
         /// Opens the galaxy and logs in. The galaxy and node come from -Galaxy/-Node or config\defaults.ini.
-        /// The user comes from -User or the credential saved with SaveGalaxyCredential.exe; the saved password
-        /// is used when the user matches, otherwise the password is prompted.
+        /// The user comes from -User or the galaxy's section in config\credentials.local.ini; the password from that
+        /// file is used when the user matches, otherwise the password is prompted.
         /// Use it in a using block so the session always logs out.
         /// </summary>
         public static GalaxySession OpenGalaxy(ToolArgs args)
@@ -73,7 +73,7 @@ namespace GRAccessTools.Common
             ResolveGalaxy(args, out node, out galaxyName);
 
             string savedUser, savedPassword;
-            bool saved = CredentialStore.TryRead(node, galaxyName, out savedUser, out savedPassword);
+            bool saved = CredentialsFile.TryRead(galaxyName, out savedUser, out savedPassword);
 
             string user = args.Get("User", saved ? savedUser : "");
             bool useSaved = saved && string.Equals(user, savedUser, StringComparison.OrdinalIgnoreCase);
@@ -83,13 +83,16 @@ namespace GRAccessTools.Common
             {
                 return GalaxySession.Open(node, galaxyName, user, password);
             }
-            catch (GRAccessException ex)
+            catch (GalaxyLoginException ex)
             {
-                if (!useSaved)
-                    throw;
-                throw new GRAccessException(ex.Message + Environment.NewLine +
-                    "The password came from Windows Credential Manager (" + CredentialStore.TargetName(node, galaxyName) +
-                    "). If it has changed, save it again with SaveGalaxyCredential.exe.");
+                if (useSaved)
+                    throw new GRAccessException(ex.Message + Environment.NewLine +
+                        "The user and password came from [" + galaxyName + "] in " + CredentialsFile.FilePath + ".");
+                if (!saved && user.Length == 0)
+                    throw new GRAccessException(ex.Message + Environment.NewLine +
+                        "No login is saved for " + galaxyName + ". Add a [" + galaxyName + "] section with User= and Password= to " +
+                        CredentialsFile.FilePath + " (see credentials.example.ini), or pass -User.");
+                throw;
             }
         }
 
@@ -107,7 +110,7 @@ namespace GRAccessTools.Common
         public static string PromptPassword(string user)
         {
             if (Console.IsInputRedirected)
-                throw new UsageException("Cannot prompt for the password of user '" + user + "' because input is redirected. Run the tool from an interactive console.");
+                throw new UsageException("Cannot prompt for the password of user '" + user + "' because input is redirected. Run the tool from an interactive console, or add the login to " + CredentialsFile.FilePath + ".");
 
             Console.Write("Password for " + user + ": ");
             StringBuilder password = new StringBuilder();
