@@ -18,6 +18,7 @@ graccess\
 |   |-- Common\            GRAccessTools.Common.dll: code shared by every tool
 |   |   |-- Galaxy\        Connecting, logging in, finding objects, checking GRAccess results
 |   |   |-- Cli\           Argument parsing, the standard Main wrapper, exit codes
+|   |   |-- Input\         Reading input files such as CSV
 |   |   |-- Output\        Run folders under output\ and CSV files
 |   |   `-- Settings\      Reading config\defaults.ini and config\credentials.local.ini
 |   `-- Tools\             One folder per tool, grouped by what the tool is allowed to do
