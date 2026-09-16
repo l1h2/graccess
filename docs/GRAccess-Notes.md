@@ -20,6 +20,7 @@ The official reference and samples are in `C:\Program Files (x86)\ArchestrA\Tool
 - `QueryObjectsByName` must be told whether the names are templates or instances. Template names start with `$`.
 - A query for an object that does not exist succeeds with `count == 0`. An attribute that does not exist returns `null`.
 - `attribute.value.GetString()` works for every data type. Values that are not set read as `No Data`.
+- GRAccess objects live in `GRAccessApp.exe`, a separate 32-bit process started for each tool run, and stay there until .NET releases their wrappers. That only happens when the tool collects garbage, which a tool rarely needs on its own. Every read of `IgObject.Attributes` builds the whole attribute collection there. Reading the I/O of the 1118 instances of EMGALAXY's MU area that way grew `GRAccessApp.exe` to 1.6 GB until it crashed (Application Error 0xc0000409), and the tool then failed with "The RPC server is unavailable" (0x800706BA). Read `Attributes` once per object and call `GC.Collect()` and `GC.WaitForPendingFinalizers()` every few dozen objects; `ExportInstanceIO` then peaks below 300 MB on MU.
 
 ## Templates, toolsets and attributes
 
