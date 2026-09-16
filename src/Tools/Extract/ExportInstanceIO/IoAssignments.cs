@@ -67,8 +67,8 @@ namespace GRAccessTools.Extract
         }
 
         // Device.ScanGroup.ItemName for an object with an assigned device. Without one the path starts with <IODevice>,
-        // the way the IDE shows it, and false is returned.
-        public bool TryResolve(string tagname, string hierarchicalName, string attribute, char ioType, out string path)
+        // the way the IDE shows it.
+        public string Resolve(string tagname, string hierarchicalName, string attribute, char ioType)
         {
             string scanGroup;
             bool assigned = scanGroups.TryGetValue(tagname, out scanGroup);
@@ -81,8 +81,7 @@ namespace GRAccessTools.Extract
                 spec = DefaultRule;
 
             string item = spec.Replace("<HierarchicalName>", hierarchicalName).Replace("<AttributeName>", attribute);
-            path = (assigned ? scanGroup : "<IODevice>") + "." + item;
-            return assigned;
+            return (assigned ? scanGroup : "<IODevice>") + "." + item;
         }
     }
 }

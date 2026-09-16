@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using ArchestrA.GRAccess;
 
 namespace GRAccessTools.Common
@@ -97,10 +98,22 @@ namespace GRAccessTools.Common
             if (galaxy == null)
                 return;
 
-            galaxy.Logout();
+            IGalaxy loggedIn = galaxy;
             galaxy = null;
-            GC.KeepAlive(app);
-            app = null;
+            try
+            {
+                loggedIn.Logout();
+            }
+            catch (COMException)
+            {
+                // The connection is already gone (e.g. GRAccessApp.exe stopped). Throwing here would hide the error that
+                // ended the session, and there is nothing left to log out of.
+            }
+            finally
+            {
+                GC.KeepAlive(app);
+                app = null;
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 // ExportInstanceIO: writes the I/O references of one instance, or of every instance in an area and its sub-areas, to a
-// CSV file, with auto-assigned I/O resolved to the full path the system uses. With -u only the unmapped references are
-// written: those whose item is not in the ItemList of their device's scan group.
+// CSV file, with auto-assigned I/O resolved to the full path the system uses and the item reference each path sends to
+// the server (the address in the topic). An empty reference marks I/O that reaches no address, e.g. an unmapped item.
 
 using System;
 using System.Collections.Generic;
@@ -14,22 +14,30 @@ namespace GRAccessTools.Extract
     {
         const string Usage =
             "Writes the I/O references of an instance, or of every instance in an area and its sub-areas, to\r\n" +
-            "instance-io.csv: instance, template, attribute, and the full I/O path the system uses.\r\n" +
+            "instance-io.csv: instance, template, attribute, the full I/O path the system uses (path), and the\r\n" +
+            "item reference that path sends to the server (reference).\r\n" +
             "\r\n" +
-            "Usage: ExportInstanceIO.exe -i <instance> [-u]\r\n" +
-            "       ExportInstanceIO.exe -a <area> [-u]\r\n" +
+            "Usage: ExportInstanceIO.exe -i <instance>\r\n" +
+            "       ExportInstanceIO.exe -a <area>\r\n" +
             "\r\n" +
             "  -i <instance>   Instance tagname or full name, e.g. -i LSC3_PumpVFDControl_CHWR.SetPointControl\r\n" +
             "  -a <area>       Area tagname; the instances in all of its sub-areas are included\r\n" +
-            "  -u              Only unmapped references, written to instance-io-unmapped.csv: those whose item is not\r\n" +
-            "                  in the ItemList of their device's scan group, or whose object has no I/O device assigned\r\n" +
             "\r\n" +
+            "The reference is the item reference the item maps to in its scan group's device items. When the scan\r\n" +
+            "group has no device items at all, the item is addressed directly and is itself the reference.\r\n" +
+            "The reference is empty when the item is not one of its scan group's device items (unmapped), when the\r\n" +
+            "path has no item or names a scan group the device does not have, when the object has no I/O device\r\n" +
+            "assigned, when no I/O reference is set (---), or when the path does not point to a device scan group\r\n" +
+            "(e.g. Me.PV). The console lists how many rows have an empty reference for each of these reasons.\r\n" +
             "Auto-assigned I/O (---Auto---) is resolved from the galaxy's I/O device assignments, which are read from\r\n" +
             "the galaxy database with your Windows login.";
 
-        static readonly string[] Options = { "i", "a", "u" };
+        static readonly string[] Options = { "i", "a" };
 
         const string AutoReference = "---Auto---";
+
+        // Instances read between releases of the GRAccess objects that are no longer used (see ReleaseGRAccessObjects)
+        const int ReleaseInterval = 25;
 
         [STAThread]
         static int Main(string[] args)
@@ -41,7 +49,6 @@ namespace GRAccessTools.Extract
         {
             string instanceName = args.Get("i", null);
             string areaName = args.Get("a", null);
-            bool unmappedOnly = args.Has("u");
             if ((instanceName == null) == (areaName == null))
                 throw new UsageException("Give either -i <instance> or -a <area>.");
 
@@ -60,55 +67,66 @@ namespace GRAccessTools.Extract
 
                 Dictionary<string, string> templateNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 List<string[]> rows = new List<string[]>();
-                int unassigned = 0;
-                foreach (IgObject instance in instances)
-                    rows.AddRange(ReadIo(session, instance, assignments, templateNames, ref unassigned));
+                for (int i = 0; i < instances.Count; i++)
+                {
+                    rows.AddRange(ReadIo(session, instances[i], assignments, templateNames));
+                    instances[i] = null;
+                    if ((i + 1) % ReleaseInterval == 0)
+                        ReleaseGRAccessObjects();
+                }
+                ReleaseGRAccessObjects();
 
-                int allRows = rows.Count;
-                if (unmappedOnly)
-                    rows = UnmappedOnly(session, rows);
-
-                string file = Path.Combine(OutputPaths.CreateRunFolder(galaxy.Name), unmappedOnly ? "instance-io-unmapped.csv" : "instance-io.csv");
+                DeviceItems deviceItems = new DeviceItems(session);
+                int found = 0, direct = 0, notFound = 0, noItem = 0, noScanGroup = 0, unassigned = 0, notSet = 0, notDevice = 0;
+                string file = Path.Combine(OutputPaths.CreateRunFolder(galaxy.Name), "instance-io.csv");
                 using (CsvWriter csv = new CsvWriter(file))
                 {
-                    csv.WriteRow("instance", "template", "attribute", "path");
+                    csv.WriteRow("instance", "template", "attribute", "path", "reference");
                     foreach (string[] row in rows)
-                        csv.WriteRow(row);
+                    {
+                        string reference;
+                        switch (deviceItems.Find(row[3], out reference))
+                        {
+                            case ItemStatus.Found: found++; break;
+                            case ItemStatus.Direct: direct++; break;
+                            case ItemStatus.NotFound: notFound++; break;
+                            case ItemStatus.NoItem: noItem++; break;
+                            case ItemStatus.NoScanGroup: noScanGroup++; break;
+                            case ItemStatus.Unassigned: unassigned++; break;
+                            case ItemStatus.NotSet: notSet++; break;
+                            default: notDevice++; break;
+                        }
+                        csv.WriteRow(row[0], row[1], row[2], row[3], reference ?? "");
+                    }
                 }
 
-                if (unmappedOnly)
-                    Console.WriteLine("Exported " + rows.Count + " unmapped of " + allRows + " I/O reference(s) of " + instances.Count + " instance(s) to:");
-                else
-                    Console.WriteLine("Exported " + rows.Count + " I/O reference(s) of " + instances.Count + " instance(s) to:");
+                Console.WriteLine("Exported " + rows.Count + " I/O reference(s) of " + instances.Count + " instance(s) to:");
                 Console.WriteLine(file);
+                if (rows.Count == 0)
+                    return ExitCodes.Success;
+
+                Console.WriteLine((found + direct) + " have an item reference" + (found + direct == 0 ? "." : ":"));
+                if (found > 0)
+                    Console.WriteLine("  " + found + " mapped by their scan group's device items");
+                if (direct > 0)
+                    Console.WriteLine("  " + direct + " addressed directly: their scan group has no device items, so the item is the reference");
+
+                int empty = notFound + noItem + noScanGroup + unassigned + notSet + notDevice;
+                Console.WriteLine(empty + " have an empty reference" + (empty == 0 ? "." : ":"));
+                if (notFound > 0)
+                    Console.WriteLine("  " + notFound + " unmapped: the item is not one of its scan group's device items");
+                if (noItem > 0)
+                    Console.WriteLine("  " + noItem + " whose path ends at the scan group, without an item");
+                if (noScanGroup > 0)
+                    Console.WriteLine("  " + noScanGroup + " whose device has no scan group by that name");
                 if (unassigned > 0)
-                    Console.WriteLine("Note: " + unassigned + " reference(s) are " + AutoReference + " but their object has no I/O device assigned, so their path starts with <IODevice>.");
+                    Console.WriteLine("  " + unassigned + " " + AutoReference + " whose object has no I/O device assigned, so their path starts with <IODevice>");
+                if (notSet > 0)
+                    Console.WriteLine("  " + notSet + " with no I/O reference set (---)");
+                if (notDevice > 0)
+                    Console.WriteLine("  " + notDevice + " that do not point to a device scan group, e.g. Me.PV or an attribute of the device itself");
             }
             return ExitCodes.Success;
-        }
-
-        // Keeps the references whose item is missing from their scan group's ItemList, and those whose object has no I/O
-        // device assigned. References that do not point to a device scan group with an ItemList cannot be checked.
-        static List<string[]> UnmappedOnly(GalaxySession session, List<string[]> rows)
-        {
-            ItemLists itemLists = new ItemLists(session);
-            List<string[]> unmapped = new List<string[]>();
-            int listed = 0, notChecked = 0;
-            foreach (string[] row in rows)
-            {
-                ItemStatus status = itemLists.Check(row[3]);
-                if (status == ItemStatus.Listed)
-                    listed++;
-                else if (status == ItemStatus.NotChecked)
-                    notChecked++;
-                else
-                    unmapped.Add(row);
-            }
-
-            Console.WriteLine("Checked " + rows.Count + " I/O reference(s) against their scan group's ItemList: " + listed + " listed, " + unmapped.Count + " unmapped.");
-            if (notChecked > 0)
-                Console.WriteLine("Note: " + notChecked + " reference(s) do not point to a device scan group with an ItemList (for example Me.<attribute>), so they were not checked.");
-            return unmapped;
         }
 
         static IgObject FindInstance(IGalaxy galaxy, string name)
@@ -175,13 +193,16 @@ namespace GRAccessTools.Extract
 
         // One row per I/O reference: inputs read X.InputSource and outputs write X.OutputDest. An input/output attribute
         // gets a second row only when it is set to write to a different reference than it reads from.
-        static List<string[]> ReadIo(GalaxySession session, IgObject instance, IoAssignments assignments, Dictionary<string, string> templateNames, ref int unassigned)
+        static List<string[]> ReadIo(GalaxySession session, IgObject instance, IoAssignments assignments, Dictionary<string, string> templateNames)
         {
             List<string[]> rows = new List<string[]>();
             SortedDictionary<string, string> ioExtensions = ObjectXml.IoExtensions(instance, true);
             if (ioExtensions.Count == 0)
                 return rows;
 
+            // Each read of instance.Attributes builds the whole attribute collection in GRAccessApp.exe, so read it once for
+            // all the I/O settings below
+            IAttributes attributes = instance.Attributes;
             string tagname = instance.Tagname;
             string hierarchicalName = instance.HierarchicalName;
             string template = TemplateName(session, instance.DerivedFrom, templateNames);
@@ -190,17 +211,17 @@ namespace GRAccessTools.Extract
                 string attribute = io.Key;
                 bool reads = io.Value != "outputextension";
                 bool writes = io.Value == "outputextension"
-                    || (io.Value == "inputoutputextension" && ValueOf(instance, attribute + ".DiffOutputDest") == "true");
+                    || (io.Value == "inputoutputextension" && ValueOf(attributes, attribute + ".DiffOutputDest") == "true");
 
                 string readPath = null;
                 if (reads)
                 {
-                    readPath = ResolvePath(instance, tagname, hierarchicalName, attribute, "InputSource", 'I', assignments, ref unassigned);
+                    readPath = ResolvePath(attributes, tagname, hierarchicalName, attribute, "InputSource", 'I', assignments);
                     rows.Add(new[] { hierarchicalName, template, attribute, readPath });
                 }
                 if (writes)
                 {
-                    string writePath = ResolvePath(instance, tagname, hierarchicalName, attribute, "OutputDest", 'O', assignments, ref unassigned);
+                    string writePath = ResolvePath(attributes, tagname, hierarchicalName, attribute, "OutputDest", 'O', assignments);
                     if (writePath != readPath)
                         rows.Add(new[] { hierarchicalName, template, attribute, writePath });
                 }
@@ -209,17 +230,14 @@ namespace GRAccessTools.Extract
         }
 
         // The reference the system uses: the value itself when it was set explicitly, or for ---Auto--- the assigned
-        // I/O device and scan group followed by the item name from the naming rule
-        static string ResolvePath(IgObject instance, string tagname, string hierarchicalName, string attribute, string setting, char ioType, IoAssignments assignments, ref int unassigned)
+        // I/O device and scan group followed by the item name from the naming rule (<IODevice> when no device is assigned)
+        static string ResolvePath(IAttributes attributes, string tagname, string hierarchicalName, string attribute, string setting, char ioType, IoAssignments assignments)
         {
-            string reference = ValueOf(instance, attribute + "." + setting);
+            string reference = ValueOf(attributes, attribute + "." + setting);
             if (!string.Equals(reference, AutoReference, StringComparison.OrdinalIgnoreCase))
                 return reference;
 
-            string path;
-            if (!assignments.TryResolve(tagname, hierarchicalName, attribute, ioType, out path))
-                unassigned++;
-            return path;
+            return assignments.Resolve(tagname, hierarchicalName, attribute, ioType);
         }
 
         // The template's full name, e.g. $PumpVFDControl.SetPointControl for a contained template
@@ -235,10 +253,20 @@ namespace GRAccessTools.Extract
             return name;
         }
 
-        static string ValueOf(IgObject obj, string attributeName)
+        static string ValueOf(IAttributes attributes, string attributeName)
         {
-            IAttribute attribute = obj.Attributes[attributeName];
+            IAttribute attribute = attributes[attributeName];
             return attribute == null ? "" : attribute.value.GetString();
+        }
+
+        // GRAccess objects stay alive in GRAccessApp.exe, a 32-bit process, until .NET releases their wrappers, which only
+        // happens when this process collects garbage. Reading a large area without releasing them made GRAccessApp.exe
+        // run out of memory and stop (1118 instances of the MU area on EMGALAXY).
+        static void ReleaseGRAccessObjects()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
     }
 }
