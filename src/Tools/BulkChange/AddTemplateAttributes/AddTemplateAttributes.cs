@@ -30,9 +30,9 @@ namespace GRAccessTools.BulkChange
             "Adds user-defined attributes (UDAs) to templates from a CSV file, then checks that every derived template\r\n" +
             "and instance received them. Without -Apply this is a dry run that only reports what would change.\r\n" +
             "\r\n" +
-            "Usage: AddTemplateAttributes.exe -i <file.csv> [-o] [-Apply]\r\n" +
+            "Usage: AddTemplateAttributes.exe -f <file.csv> [-o] [-Apply]\r\n" +
             "\r\n" +
-            "  -i <file.csv>   Input file with the columns template, name, Description, IO, dataType, label\r\n" +
+            "  -f <file.csv>   Input file with the columns template, name, Description, IO, dataType, label\r\n" +
             "  -o              Update attributes that already exist (without -o those rows are skipped)\r\n" +
             "  -Apply          Make the changes; you are asked to type the galaxy name to confirm\r\n" +
             "\r\n" +
@@ -44,7 +44,7 @@ namespace GRAccessTools.BulkChange
             "  dataType      Boolean, Integer, Float, Double, String, Time, ElapsedTime or InternationalizedString\r\n" +
             "  label         Boolean: Off/On labels, e.g. Fail/Pass. Integer, Float, Double: engineering units, e.g. GPM";
 
-        static readonly string[] Options = { "i", "o", "Apply" };
+        static readonly string[] Options = { "f", "o", "Apply" };
 
         [STAThread]
         static int Main(string[] args)
@@ -54,7 +54,7 @@ namespace GRAccessTools.BulkChange
 
         static int Execute(ToolArgs args)
         {
-            string inputPath = Path.GetFullPath(args.Require("i"));
+            string inputPath = Path.GetFullPath(args.Require("f"));
             bool overwrite = args.Has("o");
             bool apply = args.Has("Apply");
             if (!File.Exists(inputPath))
