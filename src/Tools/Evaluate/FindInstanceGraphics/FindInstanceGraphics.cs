@@ -1,5 +1,5 @@
 // FindInstanceGraphics: lists the graphics that include an instance or the objects it contains (embedded symbols, tag
-// references in animations and scripts, and the name written in graphic definitions), and the ViewApps that show them.
+// references in animations and scripts, and references written in graphic definitions), and the ViewApps that show them.
 // It reads the galaxy database, so it does not log in to the galaxy.
 
 using System;
@@ -15,7 +15,8 @@ namespace GRAccessTools.Evaluate
         const string Usage =
             "Lists the graphics that include an instance or the objects it contains, and the ViewApps that show them:\r\n" +
             "Graphic Toolbox symbols, OMI layouts, symbols of other templates and instances, and ViewApps that embed\r\n" +
-            "one of its symbols, reference one of its attributes, or have its name in their definition.\r\n" +
+            "one of its symbols, reference one of its attributes, or have a reference to it (Name.Attribute) written in\r\n" +
+            "their definition, e.g. in a script.\r\n" +
             "\r\n" +
             "Usage: FindInstanceGraphics.exe -i <instance>\r\n" +
             "\r\n" +
@@ -91,21 +92,12 @@ namespace GRAccessTools.Evaluate
         // The instance by tagname or hierarchical name, without case
         static GalaxyObject FindInstance(GalaxyGraphics graphics, string name, string galaxyName)
         {
-            GalaxyObject template = null;
-            foreach (GalaxyObject obj in graphics.Objects.Values)
-            {
-                if (obj.Namespace != GalaxyObject.AutomationNamespace)
-                    continue;
-                if (!string.Equals(obj.Tagname, name, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(obj.HierarchicalName, name, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (!obj.IsTemplate)
-                    return obj;
-                template = obj;
-            }
-            if (template != null)
-                throw new UsageException("'" + template.Tagname + "' is a template. Give the name of an instance.");
-            throw new GRAccessException("Instance '" + name + "' not found in " + galaxyName + ".");
+            GalaxyObject obj = graphics.FindAutomationObject(name);
+            if (obj == null)
+                throw new GRAccessException("Instance '" + name + "' not found in " + galaxyName + ".");
+            if (obj.IsTemplate)
+                throw new UsageException("'" + obj.Tagname + "' is a template. Give the name of an instance.");
+            return obj;
         }
 
         static void PrintInstance(GalaxyGraphics graphics, GraphicSearch search)
@@ -196,7 +188,7 @@ namespace GRAccessTools.Evaluate
                 if (hit.Reasons.Count == 0)
                 {
                     foreach (string name in hit.NamesInDefinition)
-                        namesInDefinition.Add((entry.Count > 1 ? search.NameOf(hit.GraphicId) + " has" : "has") + " the name " + name);
+                        namesInDefinition.Add((entry.Count > 1 ? search.NameOf(hit.GraphicId) + " has" : "has") + " a reference to " + name);
                 }
                 graphicIds.Add(hit.GraphicId);
                 inCheckedIn |= hit.InCheckedIn;
@@ -235,7 +227,7 @@ namespace GRAccessTools.Evaluate
                 Console.WriteLine("  " + reason);
             }
             foreach (string name in namesInDefinition)
-                Console.WriteLine("  " + name + " in its definition (for example in a script or a custom property value)");
+                Console.WriteLine("  " + name + ".<attribute> written in its definition (for example in a script or a custom property value)");
 
             // The ViewApps that show it; only when there are none, the top graphics it ends up in (e.g. an unused layout)
             List<ShownIn> shownIn = search.WhereShown(graphicIds);
@@ -251,7 +243,7 @@ namespace GRAccessTools.Evaluate
                 if (through.Count > 0)
                     line += " through " + string.Join(" > ", through.ToArray());
                 if (!shown.IsViewApp)
-                    line += ", which no ViewApp or other graphic uses";
+                    line += ", which is not embedded in a ViewApp or another graphic (it can still be opened by name, e.g. from navigation)";
                 Console.WriteLine(line);
             }
             if (shownIn.Count == 0 && !entry[0].GraphicId.StartsWith("obj|", StringComparison.Ordinal))

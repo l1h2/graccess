@@ -12,4 +12,4 @@ Rules:
 
 ## Tools
 
-- `FindInstanceGraphics`: lists the graphics that include an instance or the objects it contains, and the ViewApps that show them. It looks for embedded symbols, tag references in animations and scripts, and the name written in graphic definitions, in checked-in and checked-out versions, and reads the galaxy database with your Windows login. Useful before deleting an instance.
+- `FindInstanceGraphics`: lists the graphics that include an instance or the objects it contains, and the ViewApps that show them. It looks for embedded symbols, tag references in animations and scripts, and references (Name.Attribute) written in graphic definitions, in checked-in and checked-out versions, and reads the galaxy database with your Windows login. Useful before deleting an instance.

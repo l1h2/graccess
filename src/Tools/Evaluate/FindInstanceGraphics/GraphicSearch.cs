@@ -152,8 +152,8 @@ namespace GRAccessTools.Evaluate
             }
         }
 
-        // The tagname or hierarchical name of a target written anywhere in a graphic definition, e.g. in a script or a
-        // custom property value. Names are matched whole and without case.
+        // A reference to the tagname or hierarchical name of a target (Name.Attribute) written anywhere in a graphic
+        // definition, e.g. in a script or a custom property value. Names are matched whole and without case.
         public void FindNamesInDefinitions(SqlConnection connection)
         {
             List<string> names = new List<string>();
@@ -453,9 +453,10 @@ namespace GRAccessTools.Evaluate
             return names;
         }
 
-        // Finds object names in binary graphic definitions, where text is stored as ASCII or UTF-16. Each definition is read
-        // once: runs of name characters (letters, digits, _ and .) are split at the dots, and every sequence of whole
-        // parts is looked up, so ECCP_CH1_X is found in "ECCP_CH1_X.PV" but not inside ECCP_CH10_X.
+        // Finds references to object names in binary graphic definitions, where text is stored as ASCII or UTF-16. Each
+        // definition is read once: runs of name characters (letters, digits, _ and .) are split at the dots, and every
+        // sequence of whole parts followed by an attribute is looked up, so ECCP_CH1_X is found in "ECCP_CH1_X.PV" but not
+        // in "ECCP_CH10_X.PV" or in a caption that only says "ECCP_CH1_X".
         class NameFinder
         {
             // { character width, first offset }: ASCII, then UTF-16 little endian at even and at odd offsets
@@ -515,10 +516,12 @@ namespace GRAccessTools.Evaluate
                 for (int first = 0; first < parts.Length; first++)
                 {
                     string candidate = null;
-                    for (int last = first; last < parts.Length && last - first < maxParts; last++)
+                    // The name must be followed by an attribute (Name.Attribute), as in a reference; a name on its own is
+                    // too often binary data (e.g. float bytes that read "Ct") or a caption (e.g. "B10 SUS TIE")
+                    for (int last = first; last < parts.Length - 1 && last - first < maxParts; last++)
                     {
                         candidate = candidate == null ? parts[last] : candidate + "." + parts[last];
-                        if (candidate.Length >= minLength && names.Contains(candidate))
+                        if (candidate.Length >= minLength && parts[last + 1].Length > 0 && names.Contains(candidate))
                             found.Add(candidate);
                     }
                 }

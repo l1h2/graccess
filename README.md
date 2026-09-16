@@ -23,7 +23,7 @@ graccess\
 |   |   `-- Settings\      Reading config\defaults.ini and config\credentials.local.ini
 |   `-- Tools\             One folder per tool, grouped by what the tool is allowed to do
 |       |-- Extract\       Read-only reports and exports
-|       |-- Evaluate\      Read-only rule checks that report findings
+|       |-- Evaluate\      Read-only checks and lookups that report findings
 |       |-- BulkChange\    Tools that modify a galaxy (read its README first)
 |       `-- Setup\         Tools that prepare this machine
 |-- config\                defaults.ini (default galaxy), credentials.local.ini (logins) and inputs for tools
@@ -96,6 +96,7 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 |---|---|---|
 | AddTemplateAttributes | BulkChange | Adds (or with `-o` updates) UDAs on templates from a CSV file and checks propagation. Dry run unless `-Apply`: `-f config\AddTemplateAttributes-test.csv` |
 | ExportInstanceIO | Extract | Writes the full I/O paths of an instance, or of every instance in an area and its sub-areas, to CSV with the item reference each path sends to the server (empty when unmapped, not set, or not a device path such as `Me.PV`): `-i LSC3_PumpVFDControl_CHWR.SetPointControl`, `-a LifeSci3` |
+| ExportInstanceGraphics | Extract | Writes the saved graphics each instance's symbols are placed on to CSV, for an instance or every instance in an area and its sub-areas: `-i ECCP_CH1_FlowMeter_CHWS`, `-a Radix`. Empty when on none, `No linked graphics` when the instance has no symbols |
 | ExportTemplateAttributes | Extract | Writes every attribute of a template, or of all templates in a toolset, to CSV: `-t Pump`, `-d Radix/Equipment/Pump`, `-d Radix/Equipment -r` |
-| FindInstanceGraphics | Evaluate | Lists the graphics that include an instance or the objects it contains (embedded symbols, tag references, the name in graphic definitions), and the ViewApps that show them: `-i ECCP_CH1_FlowMeter_CHWS` |
+| FindInstanceGraphics | Evaluate | Lists the graphics that include an instance or the objects it contains (embedded symbols, tag references, references written in graphic definitions), and the ViewApps that show them: `-i ECCP_CH1_FlowMeter_CHWS` |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |

@@ -2,15 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using GRAccessTools.Common;
 
-namespace GRAccessTools.Evaluate
+namespace GRAccessTools.Common
 {
     // A galaxy object: an automation object, a Graphic Toolbox element or an OMI element
-    class GalaxyObject
+    public class GalaxyObject
     {
         public const int AutomationNamespace = 1;
         public const int GraphicNamespace = 3;
+        public const int AreaCategory = 13;
         public const int OmiViewAppCategory = 17;
         public const int InTouchViewAppCategory = 26;
 
@@ -40,7 +40,7 @@ namespace GRAccessTools.Evaluate
     }
 
     // One package version of a graphic: a Graphic Toolbox or OMI element, or a symbol owned by a template or instance
-    class GraphicVersion
+    public class GraphicVersion
     {
         public int ObjectId;
         public int PackageId;
@@ -68,7 +68,7 @@ namespace GRAccessTools.Evaluate
     }
 
     // A symbol embedded in a graphic, or in a ViewApp template (visual_element_reference)
-    class EmbeddedSymbol
+    public class EmbeddedSymbol
     {
         public int ReferrerObjectId;
         public int ReferrerPackageId;
@@ -85,7 +85,7 @@ namespace GRAccessTools.Evaluate
     }
 
     // The objects, graphics and embedded symbols of a galaxy, read from its database (every statement is a SELECT)
-    class GalaxyGraphics
+    public class GalaxyGraphics
     {
         const int Timeout = 300;
 
@@ -102,6 +102,25 @@ namespace GRAccessTools.Evaluate
             graphics.LoadVersions(connection);
             graphics.LoadEmbeds(connection);
             return graphics;
+        }
+
+        // The automation object with this tagname or hierarchical name (without case), preferring an instance to a
+        // template; null when there is none
+        public GalaxyObject FindAutomationObject(string name)
+        {
+            GalaxyObject template = null;
+            foreach (GalaxyObject obj in Objects.Values)
+            {
+                if (obj.Namespace != GalaxyObject.AutomationNamespace)
+                    continue;
+                if (!string.Equals(obj.Tagname, name, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(obj.HierarchicalName, name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!obj.IsTemplate)
+                    return obj;
+                template = obj;
+            }
+            return template;
         }
 
         public string TagnameOf(int objectId)
