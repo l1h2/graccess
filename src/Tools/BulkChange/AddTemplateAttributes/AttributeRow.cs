@@ -72,7 +72,7 @@ namespace GRAccessTools.BulkChange
             return null;
         }
 
-        // e.g. "Boolean, IO=O, labels Fail/Pass, description"
+        // e.g. Boolean, IO=O, labels Fail/Pass, "Pump running"
         public string Summary()
         {
             List<string> parts = new List<string> { DataTypeName };
@@ -83,7 +83,7 @@ namespace GRAccessTools.BulkChange
             if (EngUnits != null)
                 parts.Add("units " + EngUnits);
             if (Description.Length > 0)
-                parts.Add("description");
+                parts.Add('"' + Description + '"');
             return string.Join(", ", parts.ToArray());
         }
 

@@ -267,7 +267,7 @@ namespace GRAccessTools.BulkChange
 
             IAttribute description = template.Attributes[name + ".Description"];
             if (description != null)
-                parts.Add("description '" + description.value.GetString() + "'");
+                parts.Add('"' + description.value.GetString() + '"');
             return string.Join(", ", parts.ToArray());
         }
 
