@@ -30,17 +30,10 @@ namespace GRAccessTools.Extract
         public static IoAssignments Load(string node, string galaxyName)
         {
             IoAssignments assignments = new IoAssignments();
-            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
-            builder.DataSource = node;
-            builder.InitialCatalog = galaxyName;
-            builder.IntegratedSecurity = true;
-            builder.ConnectTimeout = 15;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(builder.ConnectionString))
+                using (SqlConnection connection = GalaxyDatabase.Open(node, galaxyName))
                 {
-                    connection.Open();
                     using (SqlCommand command = new SqlCommand(LinkageQuery, connection))
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
