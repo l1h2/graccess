@@ -23,4 +23,8 @@ Name tools `Set...`, `Add...`, `Rename...` or `Replace...`, so the exe name show
 
 ## Tools
 
+- `AddInstances`: creates instances (with their contained objects) from templates listed in a CSV file, assigns them to an area and gets every object with I/O onto the requested scan group. Objects that do not take the scan group from the area are assigned with the IDE's I/O assignment call (undocumented, see `docs\GRAccess-Notes.md`), and whatever still is not on it is listed for the IDE. Where it differs from the checklist:
+  - Rule 5 does not apply: creating an instance and assigning its area and I/O are immediate and need no check-out. Rule 4 applies to the template, which must be checked in; a checked-out area or device is only noted, since neither is changed.
+  - A row whose area or I/O assignment failed is not undone, because rule 8 forbids deleting. The failure is recorded in `result.csv` and `objects.csv`.
+  - `result.csv` has no previous values (the objects are new); `objects.csv` records each created object's area, scan group, how it got it, and what it was on after the area was assigned.
 - `AddTemplateAttributes`: adds UDAs to templates from a CSV file (or updates them with `-o`) and checks that the change reached every derived template and instance. Descriptions, engineering units, Boolean labels and I/O settings are created the same way the IDE creates them, and locked.

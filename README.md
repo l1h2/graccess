@@ -79,7 +79,7 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
    Rename-Item src\Tools\Extract\ExportTemplates\ReadGalaxyProperty.cs ExportTemplates.cs
    ```
 3. In the new file, rename the class, set the namespace to `GRAccessTools.<Category>`, update `Usage` and `Options`, and replace the body of `Execute`. Keep `Main` as it is.
-4. Run `.\build.ps1`. New tool folders are picked up automatically.
+4. Run `.\build.ps1`. New tool folders are picked up automatically. A tool that needs assemblies other than GRAccess lists their paths in a `references.txt` in its folder (see `src\Tools\BulkChange\AddInstances\references.txt`).
 5. Test on a development galaxy (TrainingGalaxy, Galaxy_test or TESTGALAXY), then add the tool to the list below.
 
 ## Conventions
@@ -94,6 +94,7 @@ Exit codes: `0` success, `1` error, `2` usage error, `3` finished with findings.
 
 | Tool | Category | What it does |
 |---|---|---|
+| AddInstances | BulkChange | Creates instances from templates listed in a CSV file (template, name, area, io), assigns their area and gets their I/O onto the requested scan group, listing what must still be assigned in the IDE. Dry run unless `-Apply`: `-f config\AddInstances-test.csv` |
 | AddTemplateAttributes | BulkChange | Adds (or with `-o` updates) UDAs on templates from a CSV file and checks propagation. Dry run unless `-Apply`: `-f config\AddTemplateAttributes-test.csv` |
 | ExportInstanceIO | Extract | Writes the full I/O paths of an instance, or of every instance in an area and its sub-areas, to CSV with the item reference each path sends to the server (empty when unmapped, not set, or not a device path such as `Me.PV`): `-i LSC3_PumpVFDControl_CHWR.SetPointControl`, `-a LifeSci3` |
 | ExportInstanceGraphics | Extract | Writes the saved graphics each instance's symbols are placed on to CSV, for an instance or every instance in an area and its sub-areas: `-i ECCP_CH1_FlowMeter_CHWS`, `-a Radix`. Empty when on none, `No linked graphics` when the instance has no symbols |

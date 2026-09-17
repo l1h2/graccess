@@ -8,7 +8,9 @@
     is a 32-bit COM component. bin\ is deleted and rebuilt from scratch on every run.
 
     A tool is any folder at src\Tools\<Category>\<ToolName>\ that contains .cs files. It builds to
-    bin\<ToolName>.exe, so tool names must be unique across categories.
+    bin\<ToolName>.exe, so tool names must be unique across categories. A tool that needs other
+    assemblies lists their paths in a references.txt file in its folder, one per line (# starts a
+    comment; environment variables such as %WINDIR% are expanded).
 
 .PARAMETER Clean
     Delete bin\ and stop. Never touches output\ or config\.
@@ -88,8 +90,27 @@ foreach ($tool in $tools) {
         continue
     }
 
+    # Extra references from the tool's references.txt
+    $extraReferences = @()
+    $missingReference = $null
+    $referencesFile = Join-Path $tool.FullName 'references.txt'
+    if (Test-Path $referencesFile) {
+        foreach ($line in Get-Content $referencesFile) {
+            $entry = $line.Trim()
+            if ($entry.Length -eq 0 -or $entry.StartsWith('#')) { continue }
+            $path = [Environment]::ExpandEnvironmentVariables($entry)
+            if (-not (Test-Path $path)) { $missingReference = $path; break }
+            $extraReferences += "/reference:$path"
+        }
+    }
+    if ($missingReference) {
+        Write-Host "Skipping ${name}: reference not found: $missingReference" -ForegroundColor Red
+        $failed += $name
+        continue
+    }
+
     Write-Host "Building $name.exe"
-    & $csc @cscOptions '/target:exe' "/reference:$commonDll" "/out:$(Join-Path $bin "$name.exe")" "/recurse:$($tool.FullName)\*.cs"
+    & $csc @cscOptions '/target:exe' "/reference:$commonDll" @extraReferences "/out:$(Join-Path $bin "$name.exe")" "/recurse:$($tool.FullName)\*.cs"
     if ($LASTEXITCODE -eq 0) { $built += $name } else { $failed += $name }
 }
 

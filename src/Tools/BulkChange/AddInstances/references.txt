@@ -1,0 +1,6 @@
+# Extra assemblies this tool is compiled against (one path per line; environment variables such as %WINDIR% are expanded).
+# IoAssigner.cs uses the IDE's I/O assignment call, whose types are in these AVEVA assemblies in the GAC. These are the
+# GAC_MSIL copies, which are the ones a .NET 4 program loads at runtime; the copies in %WINDIR%\assembly\GAC are older
+# .NET 1.1 builds with the same assembly name.
+%WINDIR%\assembly\GAC_MSIL\ArchestrA.Configuration\1.0.0.0__23106a86e706d0ae\ArchestrA.Configuration.dll
+%WINDIR%\assembly\GAC_MSIL\ArchestrA.Core\1.0.0.0__23106a86e706d0ae\ArchestrA.Core.dll
