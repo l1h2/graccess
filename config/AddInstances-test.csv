@@ -1,2 +1,3 @@
 template,name,area,io
-$ValveAO,ECCP_CH8_ValveAO,ECCP_ChilledWaterLoop,BACLite_DDESuiteLink.NAE6_Normal
+$CoolingTower,LSCP_CoolingTower_3,LifeSci_CondenserWaterLoop,BACLite_DDESuiteLink.NAE167_Normal
+$CoolingTower,LSCP_CoolingTower_4,LifeSci_CondenserWaterLoop,BACLite_DDESuiteLink.NAE167_Normal
