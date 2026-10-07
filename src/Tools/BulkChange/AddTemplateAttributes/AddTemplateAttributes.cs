@@ -42,7 +42,10 @@ namespace GRAccessTools.BulkChange
             "  Description   Attribute description (optional)\r\n" +
             "  IO            I (input), O (output), IO (input/output), or empty for no I/O\r\n" +
             "  dataType      Boolean, Integer, Float, Double, String, Time, ElapsedTime or InternationalizedString\r\n" +
-            "  label         Boolean: Off/On labels, e.g. Fail/Pass. Integer, Float, Double: engineering units, e.g. GPM";
+            "  label         Boolean: Off/On labels, e.g. Fail/Pass. Integer, Float, Double: engineering units, e.g. GPM\r\n" +
+            "  category      Optional: UserWriteable or Calculated (the only categories GRAccess can set). Empty: an add\r\n" +
+            "                uses UserWriteable and an update keeps the current category. Changing the data type of a UDA\r\n" +
+            "                in another category (e.g. Object writeable) needs one of the two here.";
 
         static readonly string[] Options = { "f", "o", "Apply" };
 
@@ -198,7 +201,9 @@ namespace GRAccessTools.BulkChange
                 }
 
                 Dictionary<string, string> udaOwners = UdaOwners(group.Template);
+                Dictionary<string, XmlElement> ownUdas = OwnUdas(group.Template);
                 Dictionary<string, string> ioExtensions = null;
+                Dictionary<string, List<string>> allExtensions = null;
                 foreach (AttributeRow row in group.Rows)
                 {
                     string owner;
@@ -207,13 +212,18 @@ namespace GRAccessTools.BulkChange
                     if (group.Template.Attributes[row.Name] == null)
                     {
                         row.Action = AttributeRow.Add;
+                        if ((conflict = NameConflict(group.Template, udaOwners, row)) != null)
+                        {
+                            row.Action = AttributeRow.Error;
+                            row.Detail = conflict;
+                        }
                     }
                     else if (!overwrite)
                     {
                         row.Action = AttributeRow.Skip;
                         row.Detail = "already exists (use -o to update it)";
                     }
-                    else if (isUda && owner.Length == 0 && (conflict = SeparateUdaConflict(udaOwners, row)) != null)
+                    else if (isUda && owner.Length == 0 && (conflict = NameConflict(group.Template, udaOwners, row)) != null)
                     {
                         row.Action = AttributeRow.Error;
                         row.Detail = conflict;
@@ -221,9 +231,37 @@ namespace GRAccessTools.BulkChange
                     else if (isUda && owner.Length == 0)
                     {
                         row.Action = AttributeRow.Update;
+                        XmlElement uda = ownUdas[row.Name];
+                        row.CurrentDataType = (MxDataType)Enum.Parse(typeof(MxDataType), uda.GetAttribute("DataType"));
+                        row.CurrentCategory = (MxAttributeCategory)Enum.Parse(typeof(MxAttributeCategory), uda.GetAttribute("Category"));
+                        if (uda.GetAttribute("Security").Length > 0)
+                            row.CurrentSecurity = (MxSecurityClassification)Enum.Parse(typeof(MxSecurityClassification), uda.GetAttribute("Security"));
+                        row.CurrentOffMessage = ValueOf(group.Template, row.Name + ".OffMsg");
+                        row.CurrentOnMessage = ValueOf(group.Template, row.Name + ".OnMsg");
+                        row.CurrentDescription = HasSymbolNamed(group.Template, row.Name) ? null : ValueOf(group.Template, row.Name + ".Description");
+                        row.CurrentEngUnits = ValueOf(group.Template, row.Name + ".EngUnits");
                         if (ioExtensions == null)
+                        {
                             ioExtensions = IoExtensionsOf(group.Template);
-                        row.Previous = DescribeCurrent(group.Template, row.Name, ioExtensions);
+                            allExtensions = AllExtensionsOf(group.Template);
+                        }
+                        List<string> extensions;
+                        if (!allExtensions.TryGetValue(row.Name, out extensions))
+                            extensions = new List<string>();
+                        row.DropExtensions = extensions.FindAll(type => !AttributeRow.FitsDataType(type, row.DataType));
+                        row.Previous = DescribeCurrent(group.Template, row.Name, ioExtensions, extensions);
+                        if (row.CurrentCategory != MxAttributeCategory.MxCategoryWriteable_USC_Lockable)
+                            row.Previous += ", category " + AttributeRow.CategoryText(row.CurrentCategory);
+
+                        // UpdateUDA only accepts Calculated and User writeable, so changing the data type of e.g. an Object
+                        // writeable UDA also changes its category. Make that an explicit choice in the input file.
+                        if (row.ChangesDefinition && !AttributeRow.GRAccessCanSet(row.TargetCategory))
+                        {
+                            row.Action = AttributeRow.Error;
+                            row.Detail = "it is " + AttributeRow.CategoryText(row.CurrentCategory) + ", and GRAccess can only change the data type "
+                                + "of a UDA by making it UserWriteable or Calculated; put one of those in the category column to accept that "
+                                + "(the IDE can set " + AttributeRow.CategoryText(row.CurrentCategory) + " back afterwards)";
+                        }
                     }
                     else
                     {
@@ -237,24 +275,36 @@ namespace GRAccessTools.BulkChange
             return groups;
         }
 
-        // A UDA literally named X.Description or X.EngUnits would clash with the description or engineering units
-        // the tool sets on X
-        static string SeparateUdaConflict(Dictionary<string, string> udaOwners, AttributeRow row)
+        // Names that clash with the description or engineering units the tool sets on X: a UDA literally named
+        // X.Description or X.EngUnits, or a symbol of the template named X (X.Description is then the symbol's
+        // description, and setting X's description writes that instead)
+        static string NameConflict(IgObject template, Dictionary<string, string> udaOwners, AttributeRow row)
         {
             if (row.Description.Length > 0 && udaOwners.ContainsKey(row.Name + ".Description"))
                 return row.Name + ".Description is a separate UDA; delete it in the IDE before setting the description with this tool";
             if (row.EngUnits != null && udaOwners.ContainsKey(row.Name + ".EngUnits"))
                 return row.Name + ".EngUnits is a separate UDA; delete it in the IDE before setting the engineering units with this tool";
+            if (row.Description.Length > 0 && HasSymbolNamed(template, row.Name))
+                return "the template has a symbol named " + row.Name + ", so " + row.Name + ".Description is that symbol's description; "
+                    + "leave Description empty for this row (or rename the symbol in the IDE)";
             return null;
         }
 
+        static bool HasSymbolNamed(IgObject template, string name)
+        {
+            return template.Attributes[name + "._VisualElementDefinition"] != null;
+        }
+
         // The attribute's current definition, in the same style as AttributeRow.Summary, with the current texts
-        static string DescribeCurrent(IgObject template, string name, Dictionary<string, string> ioExtensions)
+        static string DescribeCurrent(IgObject template, string name, Dictionary<string, string> ioExtensions, List<string> extensions)
         {
             List<string> parts = new List<string> { template.Attributes[name].DataType.ToString().Substring(2) };
             string extension;
             if (ioExtensions.TryGetValue(name, out extension))
                 parts.Add("IO=" + AttributeRow.IoLetters(extension));
+            List<string> others = extensions.FindAll(type => AttributeRow.IoLetters(type) == null);
+            if (others.Count > 0)
+                parts.Add("extensions " + string.Join("/", others.ToArray()));
 
             IAttribute offMessage = template.Attributes[name + ".OffMsg"];
             IAttribute onMessage = template.Attributes[name + ".OnMsg"];
@@ -265,7 +315,7 @@ namespace GRAccessTools.BulkChange
             if (engUnits != null)
                 parts.Add("units " + engUnits.value.GetString());
 
-            IAttribute description = template.Attributes[name + ".Description"];
+            IAttribute description = HasSymbolNamed(template, name) ? null : template.Attributes[name + ".Description"];
             if (description != null)
                 parts.Add('"' + description.value.GetString() + '"');
             return string.Join(", ", parts.ToArray());
@@ -351,24 +401,48 @@ namespace GRAccessTools.BulkChange
         static void ApplyRow(IgObject template, ITemplate editable, AttributeRow row, Dictionary<string, string> ioExtensions)
         {
             string fullName = template.Tagname + "." + row.Name;
-            MxAttributeCategory category = row.DataType == MxDataType.MxInternationalizedString
-                ? MxAttributeCategory.MxCategoryWriteable_C_Lockable
-                : MxAttributeCategory.MxCategoryWriteable_USC_Lockable;
+            string offMessage = row.OffMessage;
+            string onMessage = row.OnMessage;
+            string description = row.Description;
+            string engUnits = row.EngUnits;
 
             if (row.Action == AttributeRow.Add)
             {
-                editable.AddUDA(row.Name, row.DataType, category, MxSecurityClassification.MxSecurityOperate, false, 0);
+                editable.AddUDA(row.Name, row.DataType, row.TargetCategory, MxSecurityClassification.MxSecurityOperate, false, 0);
                 GRAccessException.ThrowIfFailed(template.CommandResult, "Add " + fullName);
             }
             else
             {
-                editable.UpdateUDA(row.Name, row.DataType, category, MxSecurityClassification.MxSecurityOperate, false, 0);
-                GRAccessException.ThrowIfFailed(template.CommandResult, "Update " + fullName);
+                // UpdateUDA keeps every extension, so remove the ones that do not fit the data type first
+                foreach (string extension in row.DropExtensions)
+                {
+                    editable.DeleteExtensionPrimitive(extension, row.Name);
+                    GRAccessException.ThrowIfFailed(template.CommandResult, "Remove " + extension + " from " + fullName);
+                }
+
+                // Only when the data type or category changes: UpdateUDA drops a Boolean's labels, so put back what the
+                // row does not set itself, and keep the attribute's security classification
+                if (row.ChangesDefinition)
+                {
+                    editable.UpdateUDA(row.Name, row.DataType, row.TargetCategory, row.CurrentSecurity, false, 0);
+                    GRAccessException.ThrowIfFailed(template.CommandResult, "Update " + fullName);
+                    if (offMessage == null && row.DataType == MxDataType.MxBoolean && row.CurrentDataType == MxDataType.MxBoolean
+                        && row.CurrentOffMessage != null && row.CurrentOnMessage != null)
+                    {
+                        offMessage = row.CurrentOffMessage;
+                        onMessage = row.CurrentOnMessage;
+                    }
+                    if (description.Length == 0 && !string.IsNullOrEmpty(row.CurrentDescription))
+                        description = row.CurrentDescription;
+                    if (engUnits == null && !string.IsNullOrEmpty(row.CurrentEngUnits) && IsNumeric(row.DataType))
+                        engUnits = row.CurrentEngUnits;
+                }
             }
 
             string currentIo;
             ioExtensions.TryGetValue(row.Name, out currentIo);
-            if (!string.Equals(currentIo, row.IoExtensionType, StringComparison.OrdinalIgnoreCase))
+            bool ioChanged = !string.Equals(currentIo, row.IoExtensionType, StringComparison.OrdinalIgnoreCase);
+            if (ioChanged)
             {
                 if (currentIo != null)
                 {
@@ -382,23 +456,46 @@ namespace GRAccessTools.BulkChange
                 }
             }
 
-            if (row.IoExtensionType != null)
+            // Only lock the settings of an extension this run created. Locking an existing extension's settings would
+            // push the template's values onto every instance and stop instances from having their own reference.
+            if (ioChanged && row.IoExtensionType != null)
                 LockIoSettings(template, row.Name);
 
-            if (row.Description.Length > 0)
-                SetPropertyAndLock(template, row.Name, ".Description", row.Description, (attribute, text) => attribute.Description = text);
+            if (description.Length > 0)
+                SetPropertyAndLock(template, row.Name, ".Description", description, (attribute, text) => attribute.Description = text);
 
-            if (row.OffMessage != null)
+            if (offMessage != null)
             {
                 // _CmdAdd switches Boolean labels on the same way the IDE does, creating .OnMsg, .OffMsg and .Msg
                 if (template.Attributes[row.Name + ".OnMsg"] == null)
                     SetValue(template, "_CmdAdd", "<CmdData><BooleanLabel><Attribute Name=\"" + row.Name + "\"/></BooleanLabel></CmdData>", "Add Boolean labels to " + fullName);
-                SetAndLock(template, row.Name + ".OffMsg", row.OffMessage);
-                SetAndLock(template, row.Name + ".OnMsg", row.OnMessage);
+                SetAndLock(template, row.Name + ".OffMsg", offMessage);
+                SetAndLock(template, row.Name + ".OnMsg", onMessage);
             }
 
-            if (row.EngUnits != null)
-                SetPropertyAndLock(template, row.Name, ".EngUnits", row.EngUnits, (attribute, text) => attribute.EngUnits = text);
+            if (engUnits != null)
+                SetPropertyAndLock(template, row.Name, ".EngUnits", engUnits, (attribute, text) => attribute.EngUnits = text);
+        }
+
+        static bool IsNumeric(MxDataType type)
+        {
+            return type == MxDataType.MxInteger || type == MxDataType.MxFloat || type == MxDataType.MxDouble;
+        }
+
+        // The attribute's value as text, or null when the attribute does not exist
+        static string ValueOf(IgObject obj, string name)
+        {
+            IAttribute attribute = obj.Attributes[name];
+            return attribute == null ? null : attribute.value.GetString();
+        }
+
+        // The <Attribute> element of each UDA defined in this template (not inherited), with its DataType, Category and Security
+        static Dictionary<string, XmlElement> OwnUdas(IgObject template)
+        {
+            Dictionary<string, XmlElement> udas = new Dictionary<string, XmlElement>(StringComparer.OrdinalIgnoreCase);
+            foreach (XmlElement element in ObjectXml.SelectElements(template, "UDAs", "/UDAInfo/Attribute"))
+                udas[element.GetAttribute("Name")] = element;
+            return udas;
         }
 
         // Locks the attribute's I/O settings (such as the Write to reference) the way locking the I/O block in the IDE
@@ -469,6 +566,30 @@ namespace GRAccessTools.BulkChange
         static Dictionary<string, string> IoExtensionsOf(IgObject template)
         {
             return new Dictionary<string, string>(ObjectXml.IoExtensions(template, false), StringComparer.OrdinalIgnoreCase);
+        }
+
+        // Every extension type (I/O, alarm, boolean, analog, history, ...) on each attribute, added in this template
+        public static Dictionary<string, List<string>> AllExtensionsOf(IgObject obj, bool includeInherited = false)
+        {
+            Dictionary<string, List<string>> extensions = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            string[] xmlAttributes = includeInherited ? new[] { "Extensions", "_InheritedExtensions" } : new[] { "Extensions" };
+            foreach (string xmlAttribute in xmlAttributes)
+            {
+                foreach (XmlElement element in ObjectXml.SelectElements(obj, xmlAttribute, "/ExtensionInfo/AttributeExtension/Attribute"))
+                {
+                    string name = element.GetAttribute("Name");
+                    List<string> types;
+                    if (!extensions.TryGetValue(name, out types))
+                    {
+                        types = new List<string>();
+                        extensions.Add(name, types);
+                    }
+                    string type = element.GetAttribute("ExtensionType").ToLowerInvariant();
+                    if (!types.Contains(type))
+                        types.Add(type);
+                }
+            }
+            return extensions;
         }
 
         static void WriteRows(string path, List<AttributeRow> rows)

@@ -1,3 +1,2 @@
 template,name,area,io
-$CoolingTower,LSCP_CoolingTower_3,LifeSci_CondenserWaterLoop,BACLite_DDESuiteLink.NAE167_Normal
-$CoolingTower,LSCP_CoolingTower_4,LifeSci_CondenserWaterLoop,BACLite_DDESuiteLink.NAE167_Normal
+$PumpVFDControl,ECCP_PumpVFDControl_CWS_11,ECCP_CondenserWaterLoop,BACLite_DDESuiteLink.NAE6_Normal

@@ -17,9 +17,9 @@ Tools that modify a galaxy. A mistake here can change many objects at once, so e
 5. For each object: CheckOut, change, Save, CheckIn with a comment. Undo the check-out if anything fails.
 6. Stop at the first failure (exit code 1), unless the tool offers an explicit `-ContinueOnError`, in which case it finishes and exits with 3 if any object failed.
 7. Write `result.csv` with what happened to every input row, including the previous definition or value of anything it changed.
-8. Never Deploy, Undeploy or Delete. Redeploying changed instances is a separate, manual step.
+8. Never Deploy, Undeploy or Delete objects. Redeploying changed instances is a separate, manual step. Removing attributes from a template (`RemoveTemplateAttributes`) is allowed because the input file names each one.
 
-Name tools `Set...`, `Add...`, `Rename...` or `Replace...`, so the exe name shows that the tool writes to a galaxy.
+Name tools `Set...`, `Add...`, `Remove...`, `Rename...` or `Replace...`, so the exe name shows that the tool writes to a galaxy.
 
 ## Tools
 
@@ -28,3 +28,5 @@ Name tools `Set...`, `Add...`, `Rename...` or `Replace...`, so the exe name show
   - A row whose area or I/O assignment failed is not undone, because rule 8 forbids deleting. The failure is recorded in `result.csv` and `objects.csv`.
   - `result.csv` has no previous values (the objects are new); `objects.csv` records each created object's area, scan group, how it got it, and what it was on after the area was assigned.
 - `AddTemplateAttributes`: adds UDAs to templates from a CSV file (or updates them with `-o`) and checks that the change reached every derived template and instance. Descriptions, engineering units, Boolean labels and I/O settings are created the same way the IDE creates them, and locked.
+- `SetDeviceItems`: compares the device items of a device integration object's scan groups with a CSV file (dry run), and with `-Apply` fills scan groups that have no items yet. GRAccess cannot replace the items of a scan group that has some (setting `AliasDatabase` only adds and updates, and a written `ItemList` turns every reference into `<undefined>` on save; see `docs\GRAccess-Notes.md`), so the tool refuses those and they are changed in the IDE. Before saving it reads the scan groups back and undoes the check-out on any difference.
+- `RemoveTemplateAttributes`: removes UDAs, with their extensions, from the templates that define them, then checks that no derived template or instance still has them. Before changing anything it refuses inherited UDAs, UDAs a derived object added its own extension to, checked-out derived objects, and UDAs the galaxy database shows as still referenced by a graphic, script or object. `result.csv` keeps each attribute's previous definition.

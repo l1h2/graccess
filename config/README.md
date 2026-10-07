@@ -14,7 +14,7 @@ Galaxy logins: one `[GalaxyName]` section per galaxy with `User=` and `Password=
 
 Non-secret inputs such as object lists, attribute mappings and rule sets.
 
-- Put galaxy-specific files in a folder per galaxy, e.g. `config\TrainingGalaxy\objects.csv`.
+- Put galaxy-specific files in a folder per galaxy under `topics`, e.g. `config\topics\TrainingGalaxy\objects.csv`. Git ignores `topics`, so these inputs stay on this machine.
 - Tools read these files only when they are passed explicitly, e.g. `AddTemplateAttributes.exe -f config\AddTemplateAttributes-test.csv`.
 - Use CSV for lists and mappings, and XML for structured rules. Both can be read without extra libraries.
 - Files named `*.local.*` are specific to one machine and are not shared (ignored by `.gitignore`).

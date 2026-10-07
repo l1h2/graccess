@@ -27,10 +27,14 @@ graccess\
 |       |-- Evaluate\      Read-only checks and lookups that report findings
 |       |-- BulkChange\    Tools that modify a galaxy (read its README first)
 |       `-- Setup\         Tools that prepare this machine
-|-- config\                defaults.ini (default galaxy), credentials.local.ini (logins) and inputs for tools
+|-- config\                defaults.ini (default galaxy), credentials.local.ini (logins) and test inputs
+|   `-- topics\            Inputs for tools, one folder per galaxy, e.g. EMGALAXY's IO list Mapping.xlsx (not committed)
 |-- docs\                  GRAccess notes and gotchas
+|   |-- references\        Metasys exports: points, multistate value states and screens (not committed)
+|   `-- issues\            Open issue lists (not committed)
 |-- bin\                   Build artifacts, created by build.ps1 (safe to delete)
 `-- output\                Files written by tools when they run (never deleted by the build)
+    `-- logs\              Change logs (not committed)
 ```
 
 ## Build
@@ -104,6 +108,8 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 | ExportTemplateAttributes | Extract | Writes every attribute of a template, or of all templates in a toolset, to CSV |
 | FindInstanceGraphics | Evaluate | Lists the graphics and ViewApps that include an instance |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
+| RemoveTemplateAttributes | BulkChange | Removes UDAs and their extensions from templates listed in a CSV file and checks propagation |
+| SetDeviceItems | BulkChange | Compares a device's scan group items with a CSV file, and fills empty scan groups with them |
 
 ### Tool details
 
@@ -117,7 +123,10 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 **AddTemplateAttributes**
 - Dry run unless `-Apply`, which asks you to type the galaxy name. `-o` updates attributes that already exist; without it they are skipped. Writes `plan.csv` (dry run) or `result.csv` and `propagation.csv`, plus a copy of the input file.
 - CSV columns: `template` (the `$` is optional), `name`, `Description` (optional), `IO` (`I`, `O`, `IO` or empty), `dataType` (Boolean, Integer, Float, Double, String, Time, ElapsedTime or InternationalizedString), and `label`: Off/On labels for a Boolean (e.g. `Fail/Pass`), engineering units for an Integer, Float or Double.
-- Descriptions, engineering units, Boolean labels and I/O settings are created the way the IDE creates them, and locked.
+- Descriptions, engineering units, Boolean labels and I/O settings are created the way the IDE creates them, and locked. The I/O settings are only locked when the tool adds the I/O extension (a new attribute or a changed I/O direction); an update that keeps the extension leaves its settings and their lock state alone.
+- A row that sets a description stops the dry run when the template owns a symbol with the same name as the attribute: `X.Description` is then the symbol's description, and GRAccess would write the text there.
+- Optional `category` column: `UserWriteable` or `Calculated`, the only categories GRAccess can set. Empty: an add uses UserWriteable and an update keeps the current category. A row that only changes I/O, labels, description or units leaves the data type, category and security alone. Changing the data type of a UDA in another category (e.g. Object writeable) stops the dry run until the row says `UserWriteable` or `Calculated`; the IDE can set the old category back afterwards.
+- An update removes the attribute's extensions that do not fit its data type: alarm and boolean extensions (a Boolean alarm) only belong on Booleans, analog extensions (limit, rate-of-change and deviation alarms) only on Integer, Float and Double. The plan lists them as "removes ...", and the propagation check confirms they are gone.
 - `propagation.csv`: template, object, kind, status, problems, note.
 - Exit 3: the change did not reach every derived template or instance.
 
@@ -141,3 +150,16 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 
 **ReadGalaxyProperty**
 - Console only. `-Object` defaults to `$UserDefined`, `-Attribute` to `SecurityGroup`.
+
+**RemoveTemplateAttributes**
+- Dry run unless `-Apply`, which asks you to type the galaxy name. Writes `plan.csv` (dry run) or `result.csv` and `propagation.csv`, plus a copy of the input file.
+- CSV columns: `template` (the `$` is optional) and `name`. The template must define the UDA; its extensions (I/O, alarm, history, ...) are removed with it.
+- A row cannot be done (nothing is changed) when the UDA is inherited, when a derived object added its own extension to it, when a derived object is checked out, or when the galaxy database shows a graphic, script or object that still references it. The references are read with your Windows login.
+- `result.csv` keeps each removed attribute's previous definition (data type, extensions, labels, units, description). `propagation.csv`: template, object, kind, status, problems.
+- Exit 3: a derived template or instance still has the attribute.
+
+**SetDeviceItems**
+- CSV columns: `device` (a device integration object, e.g. `BACLite_DDESuiteLink`), `scanGroup` (the topic, e.g. `NAE6_Normal`), `item` (the item name objects use, e.g. `ECCP_CH1.CHS_T`) and `reference` (the item reference, e.g. `AI:3052894:PRESENT-VALUE`). Each scan group in the file is compared with exactly the file's items; scan groups not in the file are left alone. Item names are compared without case.
+- The dry run writes `plan.csv`: per item, `keep`, `add`, `change` (another reference), `recase` (the name differs only in letter case) or `remove` (not in the file). Use it to check a device against an agreed list, e.g. after importing items in the IDE.
+- `-Apply` asks you to type the galaxy name and only writes scan groups that have no items yet: GRAccess cannot replace the items of a scan group that has some (see `docs\GRAccess-Notes.md`), so delete and import those in the IDE. It reads the result back before saving and undoes the check-out on any difference. `result.csv` records every item; the device is never deployed.
+- A write run has so far always left its process stuck while exiting, which keeps its exe folder locked until the server restarts. Dry runs end normally.

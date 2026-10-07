@@ -18,4 +18,5 @@ For example `output\ExportTemplateAttributes\20260915-181500_EMGALAXY\attributes
   - `plan.csv`: what would be done with each row. Written by dry runs, and by `-Apply` runs that found errors or nothing to change.
   - `result.csv`: what happened to each row. Written by `-Apply` runs after the galaxy name is confirmed.
   - `propagation.csv` (AddTemplateAttributes): whether every derived template and instance received the change. Written when a changed template has any.
+- `logs\` keeps change logs that are not tied to one run, such as the record of every template fix and of every device item change.
 - Output can contain galaxy design and security details. Keep it on this machine and delete old runs by hand.

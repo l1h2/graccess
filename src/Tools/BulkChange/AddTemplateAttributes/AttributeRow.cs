@@ -15,7 +15,22 @@ namespace GRAccessTools.BulkChange
         public const string Error = "Error";
 
         static readonly string[] RequiredColumns = { "template", "name", "dataType" };
-        static readonly string[] OptionalColumns = { "Description", "IO", "label" };
+        static readonly string[] OptionalColumns = { "Description", "IO", "label", "category" };
+
+        // The categories GRAccess can give a UDA (AddUDA and UpdateUDA reject the others, e.g. Object writeable), named as
+        // in the IDE. InternationalizedString UDAs get Configure writeable instead of User writeable.
+        static readonly Dictionary<string, MxAttributeCategory> Categories = new Dictionary<string, MxAttributeCategory>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Calculated", MxAttributeCategory.MxCategoryCalculated },
+            { "UserWriteable", MxAttributeCategory.MxCategoryWriteable_USC_Lockable }
+        };
+
+        // Whether AddUDA and UpdateUDA accept the category
+        public static bool GRAccessCanSet(MxAttributeCategory category)
+        {
+            return category == MxAttributeCategory.MxCategoryCalculated || category == MxAttributeCategory.MxCategoryWriteable_USC_Lockable
+                || category == MxAttributeCategory.MxCategoryWriteable_C_Lockable;
+        }
 
         static readonly Dictionary<string, MxDataType> DataTypes = new Dictionary<string, MxDataType>(StringComparer.OrdinalIgnoreCase)
         {
@@ -50,15 +65,77 @@ namespace GRAccessTools.BulkChange
         public string OffMessage;       // Boolean labels; null when not given
         public string OnMessage;
         public string EngUnits;         // engineering units of numeric attributes; null when not given
+        public string CategoryName;     // as written: "", Calculated or UserWriteable
+        public MxAttributeCategory? Category;  // null when not given: Add uses User writeable, Update keeps the current one
 
         public string Action = "";      // Add, Update, Skip or Error
         public string Previous = "";    // for Update: the attribute's definition before the change
+        public MxDataType CurrentDataType;            // for Update: as it is now
+        public MxAttributeCategory CurrentCategory;   // for Update: as it is now
+        public MxSecurityClassification CurrentSecurity = MxSecurityClassification.MxSecurityOperate;  // for Update: as it is now
+        public string CurrentOffMessage;    // for Update: Boolean labels, description and units as they are now (null when
+        public string CurrentOnMessage;     // missing), put back when UpdateUDA has to run and the row does not set them
+        public string CurrentDescription;
+        public string CurrentEngUnits;
+
+        // For Update: whether UpdateUDA has to run, i.e. the data type or the category changes. UpdateUDA drops the Boolean
+        // labels, so a row that only changes I/O, labels, description or units leaves the UDA definition alone.
+        public bool ChangesDefinition
+        {
+            get { return DataType != CurrentDataType || TargetCategory != CurrentCategory; }
+        }
+
+        // The category the attribute ends up with: the one asked for, otherwise the current one for an update and
+        // User writeable for an add (InternationalizedString only allows Configure writeable)
+        public MxAttributeCategory TargetCategory
+        {
+            get
+            {
+                MxAttributeCategory category = Category.HasValue ? Category.Value : (Action == Update ? CurrentCategory : MxAttributeCategory.MxCategoryWriteable_USC_Lockable);
+                if (DataType == MxDataType.MxInternationalizedString && category == MxAttributeCategory.MxCategoryWriteable_USC_Lockable)
+                    category = MxAttributeCategory.MxCategoryWriteable_C_Lockable;
+                return category;
+            }
+        }
+
+        // The IDE's name for a category, as used in the category column
+        public static string CategoryText(MxAttributeCategory category)
+        {
+            foreach (KeyValuePair<string, MxAttributeCategory> known in Categories)
+            {
+                if (known.Value == category)
+                    return known.Key;
+            }
+            if (category == MxAttributeCategory.MxCategoryWriteable_S)
+                return "ObjectWriteable";
+            if (category == MxAttributeCategory.MxCategoryCalculatedRetentive)
+                return "CalculatedRetentive";
+            return category.ToString().Replace("MxCategory", "");
+        }
+        public List<string> DropExtensions = new List<string>();  // for Update: extensions that do not fit DataType, removed
         public string Result = "";      // after -Apply: Added, Updated, Failed or Not applied
         public string Detail = "";
 
         public bool IsChange
         {
             get { return Action == Add || Action == Update; }
+        }
+
+        // Whether an extension makes sense on an attribute of this data type: alarm and boolean extensions (a Boolean
+        // alarm) only on Booleans, analog extensions (limit, rate-of-change and deviation alarms) only on numbers.
+        // UpdateUDA changes the data type but keeps every extension, so the ones that no longer fit are removed.
+        public static bool FitsDataType(string extensionType, MxDataType type)
+        {
+            switch (extensionType.ToLowerInvariant())
+            {
+                case "alarmextension":
+                case "booleanextension":
+                    return type == MxDataType.MxBoolean;
+                case "analogextension":
+                    return type == MxDataType.MxInteger || type == MxDataType.MxFloat || type == MxDataType.MxDouble;
+                default:
+                    return true;
+            }
         }
 
         // inputextension -> I, outputextension -> O, inputoutputextension -> IO; null for other extension types
@@ -84,6 +161,10 @@ namespace GRAccessTools.BulkChange
                 parts.Add("units " + EngUnits);
             if (Description.Length > 0)
                 parts.Add('"' + Description + '"');
+            if (Category.HasValue)
+                parts.Add("category " + CategoryName);
+            if (DropExtensions.Count > 0)
+                parts.Add("removes " + string.Join("/", DropExtensions.ToArray()));
             return string.Join(", ", parts.ToArray());
         }
 
@@ -137,7 +218,16 @@ namespace GRAccessTools.BulkChange
                 row.Description = Field(record, columns, "Description");
                 row.Io = Field(record, columns, "IO");
                 row.Label = Field(record, columns, "label");
+                row.CategoryName = Field(record, columns, "category");
                 string dataType = Field(record, columns, "dataType");
+
+                MxAttributeCategory category;
+                if (row.CategoryName.Length == 0)
+                    row.Category = null;
+                else if (Categories.TryGetValue(row.CategoryName, out category))
+                    row.Category = category;
+                else
+                    problems.Add(where + "category '" + row.CategoryName + "' must be one of " + string.Join(", ", new List<string>(Categories.Keys).ToArray()) + ", or empty to keep the current one.");
 
                 if (template.Length == 0)
                     problems.Add(where + "template is empty.");

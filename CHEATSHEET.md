@@ -25,7 +25,7 @@ All tools: `-Galaxy <name>` `-Node <name>` `-User <name>` `-Help`
 .\bin\AddTemplateAttributes.exe -f config\AddTemplateAttributes-test.csv -o -Apply
 ```
 
-- `-f <file.csv>` `template,name,Description,IO,dataType,label`
+- `-f <file.csv>` `template,name,Description,IO,dataType,label[,category]`
 - `-o` update existing
 - `-Apply`
 
@@ -78,3 +78,23 @@ All tools: `-Galaxy <name>` `-Node <name>` `-User <name>` `-Help`
 
 - `-Object <tagname>`
 - `-Attribute <name>`
+
+## RemoveTemplateAttributes
+
+```powershell
+.\bin\RemoveTemplateAttributes.exe -f config\topics\EMGALAXY\TemplateIssues\01-CHLR_STR-remove.csv
+.\bin\RemoveTemplateAttributes.exe -f config\topics\EMGALAXY\TemplateIssues\01-CHLR_STR-remove.csv -Apply
+```
+
+- `-f <file.csv>` `template,name`
+- `-Apply`
+
+## SetDeviceItems
+
+```powershell
+.\bin\SetDeviceItems.exe -f config\topics\EMGALAXY\IOTopics\BACLite_DDESuiteLink-items.csv
+.\bin\SetDeviceItems.exe -Galaxy TESTGALAXY -f <file.csv> -Apply
+```
+
+- `-f <file.csv>` `device,scanGroup,item,reference` (a scan group's only row may leave item and reference empty: no items)
+- `-Apply` (only fills scan groups that have no items yet)

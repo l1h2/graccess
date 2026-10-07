@@ -140,6 +140,8 @@ namespace GRAccessTools.BulkChange
 
             if (attribute.DataType != row.DataType)
                 problems.Add(row.Name + " is " + attribute.DataType.ToString().Substring(2) + " instead of " + row.DataTypeName);
+            if (attribute.AttributeCategory != row.TargetCategory)
+                problems.Add(row.Name + " is " + AttributeRow.CategoryText(attribute.AttributeCategory) + " instead of " + AttributeRow.CategoryText(row.TargetCategory));
             if (row.Description.Length > 0)
                 Expect(obj, row.Name + ".Description", row.Description, problems);
             if (row.OffMessage != null)
@@ -157,6 +159,19 @@ namespace GRAccessTools.BulkChange
             bool wantOutput = row.IoExtensionType == "outputextension" || row.IoExtensionType == "inputoutputextension";
             if (hasInput != wantInput || hasOutput != wantOutput)
                 problems.Add(row.Name + " I/O is " + IoText(hasInput, hasOutput) + " instead of " + IoText(wantInput, wantOutput));
+
+            if (row.DropExtensions.Count > 0)
+            {
+                List<string> extensions;
+                if (AddTemplateAttributes.AllExtensionsOf(obj, true).TryGetValue(row.Name, out extensions))
+                {
+                    foreach (string extension in row.DropExtensions)
+                    {
+                        if (extensions.Contains(extension))
+                            problems.Add(row.Name + " still has its " + extension);
+                    }
+                }
+            }
             return problems;
         }
 

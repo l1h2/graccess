@@ -7,3 +7,8 @@ output/*
 
 # Machine-specific configuration, including the galaxy logins in config/credentials.local.ini
 config/**/*.local.*
+
+# Working files kept on this machine: per-galaxy tool inputs, open issue lists and reference exports (Metasys)
+config/topics/
+docs/issues/
+docs/references/
