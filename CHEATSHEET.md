@@ -89,6 +89,16 @@ All tools: `-Galaxy <name>` `-Node <name>` `-User <name>` `-Help`
 - `-f <file.csv>` `template,name`
 - `-Apply`
 
+## SetAttributes
+
+```powershell
+.\bin\SetAttributes.exe -f config\topics\EMGALAXY\TemplateIssues\followup-1-Chiller.csv
+.\bin\SetAttributes.exe -f config\topics\EMGALAXY\TemplateIssues\followup-1-Chiller.csv -Apply
+```
+
+- `-f <file.csv>` `object,attribute,set,to` (`set`: `value` or `lock`; `to`: the value, or `locked`/`unlocked`)
+- `-Apply`
+
 ## SetDeviceItems
 
 ```powershell

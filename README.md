@@ -109,6 +109,7 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 | FindInstanceGraphics | Evaluate | Lists the graphics and ViewApps that include an instance |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
 | RemoveTemplateAttributes | BulkChange | Removes UDAs and their extensions from templates listed in a CSV file and checks propagation |
+| SetAttributes | BulkChange | Sets attribute values and lock states of templates and instances from a CSV file |
 | SetDeviceItems | BulkChange | Compares a device's scan group items with a CSV file, and fills empty scan groups with them |
 
 ### Tool details
@@ -157,6 +158,14 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 - A row cannot be done (nothing is changed) when the UDA is inherited, when a derived object added its own extension to it, when a derived object is checked out, or when the galaxy database shows a graphic, script or object that still references it. The references are read with your Windows login.
 - `result.csv` keeps each removed attribute's previous definition (data type, extensions, labels, units, description). `propagation.csv`: template, object, kind, status, problems.
 - Exit 3: a derived template or instance still has the attribute.
+
+**SetAttributes**
+- Dry run unless `-Apply`, which asks you to type the galaxy name. Writes `plan.csv` (dry run) or `result.csv` and `propagation.csv`, plus a copy of the input file.
+- CSV columns: `object` (a template with its `$`, or an instance), `attribute` (the full name, e.g. `RESET`, `CH_S.InputSource`, `PV.Description`), `set` (`value` or `lock`) and `to`. A value is given for the attribute's data type: `true`/`false`, a whole number, a number with `.` as decimal separator, or text (empty for none); a lock is `locked` or `unlocked`, and only in templates.
+- A value is written with the attribute's data type, which also replaces a value stored with an older type (a data type change keeps the old value, e.g. Boolean false on an Integer). The values an object stores itself are also read from the galaxy database with your Windows login, because GRAccess can show them converted. `result.csv` keeps each row's previous value or lock state.
+- A template change only reaches derived objects through locks: a value on an attribute the template does not lock does not reach existing derived templates and instances (they keep their value, or are given the old one), and a lock the template removes is taken over by derived templates. Give those objects rows of their own, after the template's run for the locks (see `docs\GRAccess-Notes.md`).
+- After the check-in each value is read back through GRAccess and, when the object stores it, from the galaxy database. A value stored as written that GRAccess shows in another type is reported in a NOTE (the object still derives from an older package of its template; locking and unlocking the attribute in the template fixes it, see `docs\GRAccess-Notes.md`).
+- `propagation.csv`: template, attribute, set, object, kind, now, status, for the locks and locked values. Exit 3: a derived object did not get one, a changed value reads back differently after the check-in, or a NOTE as above.
 
 **SetDeviceItems**
 - CSV columns: `device` (a device integration object, e.g. `BACLite_DDESuiteLink`), `scanGroup` (the topic, e.g. `NAE6_Normal`), `item` (the item name objects use, e.g. `ECCP_CH1.CHS_T`) and `reference` (the item reference, e.g. `AI:3052894:PRESENT-VALUE`). Each scan group in the file is compared with exactly the file's items; scan groups not in the file are left alone. Item names are compared without case.
