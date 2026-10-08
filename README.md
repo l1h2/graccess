@@ -109,6 +109,7 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 | FindInstanceGraphics | Evaluate | Lists the graphics and ViewApps that include an instance |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
 | RemoveTemplateAttributes | BulkChange | Removes UDAs and their extensions from templates listed in a CSV file and checks propagation |
+| RenameTemplateAttributes | BulkChange | Renames UDAs of templates from a CSV file and checks that every derived object kept what it had |
 | SetAttributes | BulkChange | Sets attribute values and lock states of templates and instances from a CSV file |
 | SetDeviceItems | BulkChange | Compares a device's scan group items with a CSV file, and fills empty scan groups with them |
 
@@ -158,6 +159,13 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 - A row cannot be done (nothing is changed) when the UDA is inherited, when a derived object added its own extension to it, when a derived object is checked out, or when the galaxy database shows a graphic, script or object that still references it. The references are read with your Windows login.
 - `result.csv` keeps each removed attribute's previous definition (data type, extensions, labels, units, description). `propagation.csv`: template, object, kind, status, problems.
 - Exit 3: a derived template or instance still has the attribute.
+
+**RenameTemplateAttributes**
+- Dry run unless `-Apply`, which asks you to type the galaxy name. Writes `plan.csv` (dry run) or `result.csv` and `propagation.csv`, plus a copy of the input file.
+- CSV columns: `template` (the `$` is optional), `name` and `newName` (letters, digits and `_`). The template must define the UDA; its extensions are renamed with it. A file may not rename one attribute twice, use one new name twice, or use another row's old name as a new name (rename in two runs instead).
+- A row cannot be done (nothing is changed) when the UDA is inherited, when the template or a derived object already uses the new name (for an attribute, or for a symbol, script or other extension, read from the galaxy database), when two rows give the same new name to templates in one derivation line, when a derived object added its own extension to the UDA, when a derived object is checked out, or, without `-r`, when the galaxy database shows a graphic, script or object that references the attribute. With `-r` those keep the old name and stop working until they are changed; `plan.csv` and `result.csv` list them. The database only records the references of instances, so a template without instances whose own scripts or symbols use the name is not seen. A row is skipped as already done when the template has no attribute with the old name and defines the new one.
+- Before the change it records, for the template and every derived object, each attribute's data type, category, security, value, lock, extensions, description, units, labels and I/O references; after the check-in it reads them again under the new name. A value that only shows in another type (GRAccess shows values in the type of the template package an object derives from) is a NOTE, not a failure. An `---Auto---` I/O reference follows the new name, so the device item becomes `<object>.<newName>`: change the I/O device's items to match.
+- `result.csv` is written even when the check after a check-in fails. `propagation.csv`: template, object, kind, status, problems, notes. Exit 3: an object does not have the new name, still has the old one, or has something different under it.
 
 **SetAttributes**
 - Dry run unless `-Apply`, which asks you to type the galaxy name. Writes `plan.csv` (dry run) or `result.csv` and `propagation.csv`, plus a copy of the input file.

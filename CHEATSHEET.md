@@ -89,6 +89,17 @@ All tools: `-Galaxy <name>` `-Node <name>` `-User <name>` `-Help`
 - `-f <file.csv>` `template,name`
 - `-Apply`
 
+## RenameTemplateAttributes
+
+```powershell
+.\bin\RenameTemplateAttributes.exe -f config\topics\EMGALAXY\TemplateIssues\followup-7-water-treatment-rename.csv
+.\bin\RenameTemplateAttributes.exe -f config\topics\EMGALAXY\TemplateIssues\followup-7-water-treatment-rename.csv -r -Apply
+```
+
+- `-f <file.csv>` `template,name,newName`
+- `-r` rename even when graphics, scripts or objects reference the attribute (they keep the old name)
+- `-Apply`
+
 ## SetAttributes
 
 ```powershell
