@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using GRAccessTools.Common;
 
-namespace GRAccessTools.BulkChange
+namespace GRAccessTools.Common
 {
-    // Finds what still uses an attribute: the galaxy database's attribute_reference table holds the references the
-    // galaxy resolved from graphics, scripts and object settings (see docs\GRAccess-Notes.md). Read-only, with the
-    // Windows login of the user running the tool.
-    static class AttributeReferences
+    /// <summary>
+    /// Finds what still uses an attribute: the galaxy database's attribute_reference table holds the references the
+    /// galaxy resolved from graphics, scripts and object settings (see docs\GRAccess-Notes.md). Read-only, with the
+    /// Windows login of the user running the tool.
+    /// </summary>
+    public static class AttributeReferences
     {
         const string Sql =
             "SELECT referrer.tag_name, ar.reference_string, resolved.tag_name, pi.primitive_name " +
