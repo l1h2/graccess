@@ -49,6 +49,16 @@ All tools: `-Galaxy <name>` `-Node <name>` `-User <name>` `-Help`
 - `-i <instance>`
 - `-a <area>`
 
+## ExportInstances
+
+```powershell
+.\bin\ExportInstances.exe -a Radix
+.\bin\ExportInstances.exe -a Radix -csv
+```
+
+- `-a <area>` the area, its sub-areas and all their instances
+- `-csv` also write a Galaxy Dump CSV
+
 ## ExportTemplateAttributes
 
 ```powershell

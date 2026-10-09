@@ -60,7 +60,7 @@ namespace GRAccessTools.Extract
                 IGalaxy galaxy = session.Galaxy;
                 List<IgObject> instances = instanceName != null
                     ? new List<IgObject> { FindInstance(galaxy, instanceName) }
-                    : FindInstancesInArea(galaxy, areaName);
+                    : GalaxyInstances.FindInArea(galaxy, areaName);
 
                 IoAssignments assignments = IoAssignments.Load(node, galaxy.Name);
                 Console.WriteLine("Reading the I/O of " + instances.Count + " instance(s)...");
@@ -131,64 +131,10 @@ namespace GRAccessTools.Extract
 
         static IgObject FindInstance(IGalaxy galaxy, string name)
         {
-            IgObject instance = TryFindInstance(galaxy, name);
+            IgObject instance = GalaxyInstances.TryFind(galaxy, name);
             if (instance == null)
                 throw new GRAccessException("Instance '" + name + "' not found in " + galaxy.Name + ".");
             return instance;
-        }
-
-        // Accepts the tagname or the full hierarchical name (Container.ContainedName). Returns null when not found.
-        static IgObject TryFindInstance(IGalaxy galaxy, string name)
-        {
-            string[] names = { name };
-            IgObjects byTagname = galaxy.QueryObjectsByName(EgObjectIsTemplateOrInstance.gObjectIsInstance, ref names);
-            GRAccessException.ThrowIfFailed(galaxy.CommandResult, "Find instance " + name);
-            if (byTagname.count > 0)
-                return byTagname[1];
-
-            // hierarchicalNameLike uses SQL LIKE, where _ matches any character, so only the exact name counts
-            IgObjects byHierarchicalName = galaxy.QueryObjects(EgObjectIsTemplateOrInstance.gObjectIsInstance, EConditionType.hierarchicalNameLike, name, EMatch.MatchCondition);
-            GRAccessException.ThrowIfFailed(galaxy.CommandResult, "Find instance " + name);
-            foreach (IgObject candidate in byHierarchicalName)
-            {
-                if (string.Equals(candidate.HierarchicalName, name, StringComparison.OrdinalIgnoreCase))
-                    return candidate;
-            }
-            return null;
-        }
-
-        // Every instance in the area and in all of its sub-areas, sorted by full name. belongsToArea returns the objects
-        // directly in an area, contained objects included; the sub-areas are the area objects among them.
-        static List<IgObject> FindInstancesInArea(IGalaxy galaxy, string areaName)
-        {
-            IgObject area = TryFindInstance(galaxy, areaName);
-            if (area == null)
-                throw new GRAccessException("Area '" + areaName + "' not found in " + galaxy.Name + ".");
-            if (area.category != ECATEGORY.idxCategoryArea)
-                throw new GRAccessException("'" + areaName + "' is not an area.");
-
-            SortedDictionary<string, IgObject> found = new SortedDictionary<string, IgObject>(StringComparer.OrdinalIgnoreCase);
-            HashSet<string> visitedAreas = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { area.Tagname };
-            Queue<string> areas = new Queue<string>();
-            areas.Enqueue(area.Tagname);
-            while (areas.Count > 0)
-            {
-                string current = areas.Dequeue();
-                IgObjects members = galaxy.QueryObjects(EgObjectIsTemplateOrInstance.gObjectIsInstance, EConditionType.belongsToArea, current, EMatch.MatchCondition);
-                GRAccessException.ThrowIfFailed(galaxy.CommandResult, "Find the objects in area " + current);
-                foreach (IgObject member in members)
-                {
-                    if (!string.Equals(member.Area, current, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    string hierarchicalName = member.HierarchicalName;
-                    if (!found.ContainsKey(hierarchicalName))
-                        found.Add(hierarchicalName, member);
-                    if (member.category == ECATEGORY.idxCategoryArea && visitedAreas.Add(member.Tagname))
-                        areas.Enqueue(member.Tagname);
-                }
-            }
-            return new List<IgObject>(found.Values);
         }
 
         // One row per I/O reference: inputs read X.InputSource and outputs write X.OutputDest. An input/output attribute

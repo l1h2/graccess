@@ -105,6 +105,7 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 | AddTemplateAttributes | BulkChange | Adds (or updates) UDAs on templates from a CSV file and checks propagation |
 | ExportInstanceGraphics | Extract | Writes the saved graphics each instance is placed on to CSV, for an instance or an area |
 | ExportInstanceIO | Extract | Writes the I/O paths and item references of an instance, or of an area's instances, to CSV |
+| ExportInstances | Extract | Exports an area with its sub-areas and every instance in them to one .aaPKG file |
 | ExportTemplateAttributes | Extract | Writes every attribute of a template, or of all templates in a toolset, to CSV |
 | FindInstanceGraphics | Evaluate | Lists the graphics and ViewApps that include an instance |
 | ReadGalaxyProperty | Extract | Prints a galaxy's name and version, and one attribute of one object |
@@ -140,6 +141,13 @@ Tools that write files put them in a new run folder, `output\<Tool>\<yyyyMMdd-HH
 **ExportInstanceIO**
 - `-i` one instance (tagname or full name), or `-a` every instance in an area and all of its sub-areas.
 - `instance-io.csv`: instance, template, attribute, path (the full I/O path, with `---Auto---` resolved), reference (the item reference the path sends to the server). An empty reference means unmapped, not set, or not a device path; the console counts each reason.
+
+**ExportInstances**
+- `-a` an area: exports it, all of its sub-areas and every instance in them (contained objects included) to `<area>.aaPKG` with GRAccess `ExportObjects`, the same package the IDE writes when all of those objects are selected and exported. `-csv` also writes them as a Galaxy Dump CSV (`<area>.csv`).
+- `objects.csv`: object (full name), tagname, template, area, container, category, checkedOutBy.
+- Templates and Graphic Toolbox symbols are not included; export those from their toolsets in the IDE (GRAccess does not see Graphic Toolbox symbols).
+- Engines, ViewApps and I/O device objects assigned to those areas are included, as they are when the whole tree is selected in the IDE.
+- Exit 3: some objects are checked out, so the package may not hold their latest changes. The Radix area took 161 s on EMGALAXY (782 objects, 38.6 MB package) and 217 s on TESTGALAXY with `-csv` (665 objects, package and dump).
 
 **ExportTemplateAttributes**
 - `-t` one template (the `$` is optional), or `-d` a toolset path from the top level with levels separated by `/` or `\` (quote paths with spaces). `-r` with `-d` also exports the toolsets below it.

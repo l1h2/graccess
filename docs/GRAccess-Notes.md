@@ -112,6 +112,13 @@ The official reference and samples are in `C:\Program Files (x86)\ArchestrA\Tool
 - `attribute_reference` has the tag references the galaxy resolved (`resolved_gobject_id`), from graphics (joined on `gobject_id`, `package_id`, `referring_mx_primitive_id` to `visual_element_version`) and from object scripts and I/O.
 - Current versions are the object's `checked_in_package_id` and `checked_out_package_id`; other packages are history and deployed copies. A graphic saved in the IDE but not checked in is already in the checked-out package.
 - Not in the database: edits not yet saved in the IDE, tag references typed into InTouch windows (files under `G:\ArchestrA\Framework\FileRepository\<galaxy>`; AVEVA is installed on G: on this machine), and OMI asset navigation, which shows an area's objects by browsing.
+- GRAccess does not see Graphic Toolbox symbols (namespace 3, `is_template` 0 in the database): `QueryObjectsByName` for instances does not find `Acid_Panel`, so `ExportObjects` cannot export them. Export them from their Graphic Toolbox folders in the IDE.
+
+## Exporting objects (verified on TESTGALAXY and EMGALAXY, 9 Oct 2026)
+
+- Exporting an area in the IDE exports only the area. `IGalaxy.CreategObjectCollection()`, `IgObjects.Add` for the area, its sub-areas and every object in them (`belongsToArea`, contained objects included), then `IgObjects.ExportObjects(EExportType.exportAsPDF, file)` writes the package the IDE writes for that selection (`ExportInstances`). The result is in `IgObjects.CommandResults` (`CompletelySuccessful`), not in a `CommandResult`.
+- An `.aaPKG` is a ZIP holding `File1.cab`, which is itself a ZIP: one numbered `.txt` per object and template, `$<base template>.txt` for the base templates used (`$Area`, `$UserDefined`, `$AppEngine`, ...), the object types' `.aaPDF` files and their DLLs and help. Every exported tagname appears in the entries' text, so listing it with Python `zipfile` is a way to check a package without importing it.
+- `exportAsCSV` writes the Galaxy Dump of the same selection: one `:TEMPLATE=` section per template, one row per object. For the Radix area, the package took 161 s on EMGALAXY (782 objects, 38.6 MB); package and dump took 217 s on TESTGALAXY (665 objects). Dump fields can be larger than Python's default CSV field limit (131,072 characters).
 
 ## C# 5
 
